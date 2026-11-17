@@ -12,6 +12,12 @@ export type LocalChatCall = {
   // renderer persists it into the session settings the same way the desktop
   // Thinking Effort selector does, so the next generation in this chat uses it.
   thinkingEffort?: 'off' | 'low' | 'medium' | 'high'
+  /** Web/phone image attachment: raw base64 (no data-URL prefix) plus the
+   * sender's mime type. The desktop validates both, stores the bytes in the
+   * same blob store the composer's images use, and attaches an image part to
+   * the user message - so it renders in Desktop and reaches the vision model
+   * exactly like a locally attached photo. */
+  image?: { data: string; mime: string }
   cursor?: string
   limit?: number
 }

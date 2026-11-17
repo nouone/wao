@@ -12,6 +12,32 @@ import { isSessionGenerating } from '@/stores/sessionActivityStore'
 const pendingChats = new Set<string>()
 const errors = new Map<string, string>()
 
+// Web image attachments: accepted types and their magic bytes. The mime
+// allowlist alone is not enough - a caller could label a PDF as jpeg and the
+// provider would reject the part with a far less actionable error than ours.
+const WEB_IMAGE_MIMES: Record<string, boolean> = {
+  'image/png': true,
+  'image/jpeg': true,
+  'image/webp': true,
+  'image/gif': true,
+}
+function isImageMagic(bytes: Uint8Array, mime: string): boolean {
+  const at = (o: number, ...vals: number[]) => vals.every((v, i) => bytes[o + i] === v)
+  if (bytes.length < 12) return false
+  switch (mime) {
+    case 'image/png':
+      return at(0, 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)
+    case 'image/jpeg':
+      return at(0, 0xff, 0xd8, 0xff)
+    case 'image/webp':
+      return at(0, 0x52, 0x49, 0x46, 0x46) && at(8, 0x57, 0x45, 0x42, 0x50)
+    case 'image/gif':
+      return at(0, 0x47, 0x49, 0x46, 0x38) && (bytes[4] === 0x37 || bytes[4] === 0x39) && bytes[5] === 0x61
+    default:
+      return false
+  }
+}
+
 // Field report: with the transcription service stopped, the phone read
 // "Voice: Access is denied" - Electron's session fetch reports a refused
 // local port as ERROR_ACCESS_DENIED on Windows (and "fetch failed" in the
@@ -255,8 +281,8 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
     if (
       call.action !== 'send' ||
       typeof call.content !== 'string' ||
-      !call.content.trim() ||
-      call.content.length > 60000
+      call.content.length > 60000 ||
+      (!call.content.trim() && !call.image)
     )
       return { status: 400, body: { error: 'Invalid message' } }
     if (pendingChats.has(call.chatId) || isSessionGenerating(call.chatId))
@@ -267,6 +293,40 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
     if (!gate.allowed) return { status: 409, body: { error: `Conversation blocked: ${gate.reason}` } }
     if (pendingChats.has(call.chatId))
       return { status: 409, body: { error: 'Conversation is already processing a message' } }
+    // Phone image attachment: validate, then store the bytes in the same blob
+    // store the desktop composer's images use (data-URL value), so the
+    // message renders in Desktop and reaches the vision model unchanged. The
+    // magic-byte check below is not paranoia: an image part with non-image
+    // bytes reaches the provider and fails there with a worse error.
+    let imageStorageKey: string | undefined
+    if (call.image) {
+      if (!WEB_IMAGE_MIMES[call.image.mime])
+        return { status: 400, body: { error: 'Image type not supported (png, jpeg, webp or gif).' } }
+      if (call.image.data.length > 9 * 1024 * 1024)
+        return { status: 413, body: { error: 'Image too large (max 6 MB).' } }
+      let bytes: Uint8Array
+      try {
+        const binary = atob(call.image.data)
+        bytes = new Uint8Array(binary.length)
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+      } catch {
+        return { status: 400, body: { error: 'Image data is not valid base64.' } }
+      }
+      if (!isImageMagic(bytes, call.image.mime))
+        return { status: 400, body: { error: 'Image data does not match a real image file.' } }
+      const { currentBlobStorage } = await import('@/adapters/CurrentBlobStorage')
+      const { StorageKeyGenerator } = await import('@/storage/StoreStorage')
+      imageStorageKey = StorageKeyGenerator.picture('web-input')
+      const dataUrl = `data:${call.image.mime};base64,${call.image.data}`
+      try {
+        await currentBlobStorage.set(imageStorageKey, dataUrl)
+      } catch (error) {
+        return {
+          status: 500,
+          body: { error: `Could not store the image: ${error instanceof Error ? error.message : error}` },
+        }
+      }
+    }
     const message = createMessage(
       'user',
       // Voice sends carry the speakable-answer instruction ONLY while the
@@ -281,6 +341,10 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
           : call.content
     )
     message.suppressDesktopAutoRead = true
+    if (imageStorageKey) {
+      message.contentParts = message.contentParts ?? []
+      message.contentParts.push({ type: 'image', storageKey: imageStorageKey })
+    }
     const chatId = call.chatId
     if (call.thinkingEffort) {
       try {

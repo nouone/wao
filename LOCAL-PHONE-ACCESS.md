@@ -66,6 +66,8 @@ The browser retries ordinary connection loss using remembered pairing. If pairin
 
 Prefer the keyboard microphone on the iPhone to dictate into the message box, then review and Send. Wao does not add a second recorder or upload keyboard dictation audio itself; keyboard dictation follows your iPhone settings. Voice mode above is the separate hands-free path.
 
+The **camera button** beside the message box attaches a photo to the next send: take one or pick from the library (PNG/JPEG/WebP/GIF, up to 6 MB). The photo is stored on Desktop like a locally attached image, reaches the vision model the same way, and appears in the web transcript as `[image]` after the first refresh (the thumbnail stays visible until then). Text and photo can be sent together or the photo alone. Voice mode has no camera; attach photos in the typed composer.
+
 Completed assistant replies have a **Read aloud** button. Enable Read aloud in Desktop Default Models and start your configured Kokoro/OpenAI-compatible speech service. The phone requests audio through the authenticated Wao server; the speech URL, model, voice, speed and API key stay on Desktop. The same Desktop speech text normalization is used. No separate chat client or speech-provider configuration is required on the phone.
 
 If Safari does not start playback after preparation, tap Play on that reply's audio controls. Stop reading cancels/releases playback, and changing chats or forgetting the device releases its audio. Web-originated replies suppress Desktop auto-read even when that chat is visible and Desktop's auto-read toggle is On. Normal Desktop sends retain their auto-read behavior. This does not stop speech that was already playing from a separate Desktop action.

@@ -178,6 +178,37 @@ it('carries voice: true on mic-mode sends and omits it otherwise', async () => {
     limit: 50,
   })
 })
+it('carries image attachments through to the renderer and allows image-only sends', async () => {
+  const { request, dispatch } = await setup()
+  dispatch.mockResolvedValue({ status: 202, body: { status: 'accepted' } })
+  const withImage = await request('/api/chats/chat-id/messages', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ content: 'what is this?', image: { data: 'iVBORw0KGgoBAgMEBQY=', mime: 'image/png' } }),
+  })
+  expect(withImage.status).toBe(202)
+  expect(dispatch).toHaveBeenLastCalledWith({
+    action: 'send',
+    chatId: 'chat-id',
+    content: 'what is this?',
+    image: { data: 'iVBORw0KGgoBAgMEBQY=', mime: 'image/png' },
+    limit: 50,
+  })
+  // no text at all: accepted when a photo accompanies it
+  const imageOnly = await request('/api/chats/chat-id/messages', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ content: '', image: { data: 'iVBORw0KGgoBAgMEBQY=', mime: 'image/png' } }),
+  })
+  expect(imageOnly.status).toBe(202)
+  // malformed image objects are ignored (treated as a plain text send)
+  await request('/api/chats/chat-id/messages', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ content: 'text', image: { data: 42, mime: 'image/png' } }),
+  })
+  expect(dispatch).toHaveBeenLastCalledWith({ action: 'send', chatId: 'chat-id', content: 'text', limit: 50 })
+})
 it('routes voice frontend calls (asr audio, speak text, note mirror) and validates payloads', async () => {
   const { request, dispatch } = await setup()
   dispatch.mockResolvedValue({ status: 200, body: { text: 'hello' } })
@@ -228,7 +259,10 @@ it('validates JSON, text, body size and pagination before invoking desktop', asy
       await request('/api/chats/id/messages', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: 'x'.repeat(70000),
+        // messages POST carries optional base64 image attachments, so its
+        // ceiling is 10 MB (every other route keeps 64 KB): oversized means
+        // over 10 MB here.
+        body: 'x'.repeat(11 * 1024 * 1024),
       })
     ).status
   ).toBe(413)

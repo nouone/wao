@@ -192,10 +192,21 @@ export async function startLocalChatApi(options: {
       else if (req.method === 'GET' && match && !match[2])
         call = { action: 'read', chatId: decodeURIComponent(match[1]) }
       else if (req.method === 'POST' && match?.[2]) {
-        const input: unknown = await readJson(req)
+        // Image attachments ride the same JSON body (base64); this route gets
+        // a 10 MB ceiling while everything else keeps the 64 KB default.
+        const input: unknown = await readJson(req, 10 * 1024 * 1024)
         const content = (input as { content?: unknown } | null)?.content
-        if (typeof content !== 'string' || !content.trim() || content.length > 60000) {
-          reply(res, 400, { error: 'content must be non-empty text (max 60000 characters)' })
+        const rawImage = (input as { image?: unknown } | null)?.image
+        const image =
+          rawImage && typeof rawImage === 'object'
+            ? {
+                data: (rawImage as { data?: unknown }).data,
+                mime: (rawImage as { mime?: unknown }).mime,
+              }
+            : undefined
+        const hasImage = Boolean(image && typeof image.data === 'string' && typeof image.mime === 'string')
+        if (typeof content !== 'string' || (!content.trim() && !hasImage) || content.length > 60000) {
+          reply(res, 400, { error: 'content must be text (max 60000 characters); required unless an image is attached' })
           return
         }
         // Optional per-send thinking level (voice clients). Unknown values are
@@ -220,6 +231,9 @@ export async function startLocalChatApi(options: {
           content,
           ...(thinkingEffort ? { thinkingEffort } : {}),
           ...(input && (input as { voice?: unknown }).voice === true ? { voice: true } : {}),
+          ...(image && typeof image.data === 'string' && typeof image.mime === 'string'
+            ? { image: { data: image.data, mime: image.mime } }
+            : {}),
         }
       } else {
         reply(res, 404, { error: 'Route not found' })

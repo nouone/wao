@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   settings: vi.fn(() => ({})),
   direct: vi.fn(),
   speakText: vi.fn(),
+  blobSet: vi.fn().mockResolvedValue(undefined),
 }))
 vi.mock('@/app/renderer-application', () => ({
   rendererApplication: {
@@ -33,6 +34,13 @@ vi.mock('./local-chat-speech', () => ({
 vi.mock('@/utils/desktop-direct-request', () => ({
   desktopDirectRequestFromWindow: (...args: unknown[]) => mocks.direct(...args),
 }))
+vi.mock('@/adapters/CurrentBlobStorage', () => ({
+  currentBlobStorage: { set: (...args: unknown[]) => mocks.blobSet(...args) },
+}))
+vi.mock('@/storage/StoreStorage', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/storage/StoreStorage')>()
+  return { ...actual, StorageKeyGenerator: { ...actual.StorageKeyGenerator, picture: (scope: string) => `picture:${scope}:fixed-test-key` } }
+})
 vi.mock('@/stores/session/crud', () => ({ createEmpty: mocks.create }))
 vi.mock('@/stores/session/messages', () => ({ submitNewUserMessage: mocks.send }))
 vi.mock('@/stores/settingsStore', () => ({
@@ -87,6 +95,42 @@ it('names the speech service when synthesis cannot connect', async () => {
   const result = await handleLocalChatCall({ action: 'speak', content: 'hello' })
   expect(result.status).toBe(502)
   expect((result.body as { error: string }).error).toContain('Speech service is not reachable at http://localhost:8880')
+})
+
+it('stores a web image attachment in the desktop blob store and attaches it to the message', async () => {
+  const png = 'iVBORw0KGgoBAgMEBQY=' // PNG magic + 4 bytes
+  const result = await handleLocalChatCall({ action: 'send', chatId: 'chat', content: 'What is this?', image: { data: png, mime: 'image/png' } })
+  expect(result.status).toBe(202)
+  expect(mocks.blobSet).toHaveBeenCalledWith('picture:web-input:fixed-test-key', `data:image/png;base64,${png}`)
+  expect(mocks.send).toHaveBeenCalledWith(
+    'chat',
+    expect.objectContaining({
+      newUserMsg: expect.objectContaining({
+        contentParts: [
+          expect.objectContaining({ type: 'text', text: 'What is this?' }),
+          expect.objectContaining({ type: 'image', storageKey: 'picture:web-input:fixed-test-key' }),
+        ],
+      }),
+    })
+  )
+})
+
+it('accepts an image-only send with no text', async () => {
+  const result = await handleLocalChatCall({ action: 'send', chatId: 'chat', content: '', image: { data: 'iVBORw0KGgoBAgMEBQY=', mime: 'image/png' } })
+  expect(result.status).toBe(202)
+})
+
+it('rejects unsupported types, fake bytes and oversized images before storing anything', async () => {
+  const bad = await handleLocalChatCall({ action: 'send', chatId: 'chat', content: 'x', image: { data: 'QUJDREVG', mime: 'application/pdf' } })
+  expect(bad.status).toBe(400)
+  // valid base64, 12 bytes, but the bytes are not a PNG despite the mime
+  const fake = await handleLocalChatCall({ action: 'send', chatId: 'chat', content: 'x', image: { data: 'QUJDREVGQUJDREVG', mime: 'image/png' } })
+  expect(fake.status).toBe(400)
+  expect(String((fake.body as { error: string }).error)).toMatch(/does not match/)
+  const huge = await handleLocalChatCall({ action: 'send', chatId: 'chat', content: 'x', image: { data: 'A'.repeat(9 * 1024 * 1024 + 1), mime: 'image/png' } })
+  expect(huge.status).toBe(413)
+  expect(mocks.blobSet).not.toHaveBeenCalled()
+  expect(mocks.send).not.toHaveBeenCalled()
 })
 
 it('creates a new chat through the same desktop New Chat controller', async () => {
