@@ -10,6 +10,9 @@ const mocks = vi.hoisted(() => ({
   messages: vi.fn(),
   speech: vi.fn(),
   updateHeader: vi.fn(),
+  settings: vi.fn(() => ({})),
+  direct: vi.fn(),
+  speakText: vi.fn(),
 }))
 vi.mock('@/app/renderer-application', () => ({
   rendererApplication: {
@@ -23,7 +26,13 @@ vi.mock('@/app/renderer-application', () => ({
     },
   },
 }))
-vi.mock('./local-chat-speech', () => ({ synthesizeWebReply: (...args: unknown[]) => mocks.speech(...args) }))
+vi.mock('./local-chat-speech', () => ({
+  synthesizeWebReply: (...args: unknown[]) => mocks.speech(...args),
+  synthesizeSpeechText: (...args: unknown[]) => mocks.speakText(...args),
+}))
+vi.mock('@/utils/desktop-direct-request', () => ({
+  desktopDirectRequestFromWindow: (...args: unknown[]) => mocks.direct(...args),
+}))
 vi.mock('@/stores/session/crud', () => ({ createEmpty: mocks.create }))
 vi.mock('@/stores/session/messages', () => ({ submitNewUserMessage: mocks.send }))
 vi.mock('@/stores/settingsStore', () => ({
@@ -35,7 +44,7 @@ vi.mock('@/stores/settingsStore', () => ({
           models: [{ modelId: 'qwen-next', type: 'chat', reasoningControl: 'strata' }],
         },
       ],
-      getSettings: () => ({}),
+      getSettings: () => mocks.settings(),
     }),
   },
 }))
@@ -49,6 +58,37 @@ vi.mock('@/stores/session/action-guard', () => ({
   }),
 }))
 import { handleLocalChatCall } from './local-chat-api'
+it('turns a refused transcription connection into an actionable service message, not "Access is denied"', async () => {
+  // Field report (phone, Nov 17): with the Docker ASR stopped the page read
+  // "Voice: Access is denied" - Electron session fetch's message for a dead
+  // local port. The user could do nothing with that.
+  mocks.settings.mockReturnValue({ textToSpeech: { asrUrl: 'http://localhost:8816' } })
+  mocks.direct.mockRejectedValueOnce(new Error('Access is denied.'))
+  const result = await handleLocalChatCall({ action: 'asr', content: 'AAAA' })
+  expect(result.status).toBe(502)
+  expect((result.body as { error: string }).error).toContain('Transcription service is not reachable at http://localhost:8816')
+  expect((result.body as { error: string }).error).toContain('Default Models')
+  expect((result.body as { error: string }).error).not.toMatch(/access is denied/i)
+})
+
+it('keeps genuine HTTP failures and missing configuration as their own errors', async () => {
+  mocks.settings.mockReturnValue({ textToSpeech: { asrUrl: 'http://localhost:8816' } })
+  mocks.direct.mockResolvedValueOnce({ ok: false, status: 413 } as Response)
+  const http = await handleLocalChatCall({ action: 'asr', content: 'AAAA' })
+  expect((http.body as { error: string }).error).toBe('Transcription server returned HTTP 413.')
+  mocks.settings.mockReturnValue({ textToSpeech: {} })
+  const unconfigured = await handleLocalChatCall({ action: 'asr', content: 'AAAA' })
+  expect(unconfigured.status).toBe(409)
+})
+
+it('names the speech service when synthesis cannot connect', async () => {
+  mocks.settings.mockReturnValue({ textToSpeech: { apiBaseUrl: 'http://localhost:8880' } })
+  mocks.speakText.mockRejectedValueOnce(new Error('Access is denied.'))
+  const result = await handleLocalChatCall({ action: 'speak', content: 'hello' })
+  expect(result.status).toBe(502)
+  expect((result.body as { error: string }).error).toContain('Speech service is not reachable at http://localhost:8880')
+})
+
 it('creates a new chat through the same desktop New Chat controller', async () => {
   mocks.create.mockResolvedValueOnce({ id: 'new-desktop-chat', name: 'New chat' })
   const result = await handleLocalChatCall({ action: 'create' })
@@ -58,6 +98,7 @@ it('creates a new chat through the same desktop New Chat controller', async () =
 })
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.settings.mockReturnValue({})
   mocks.busy.mockReturnValue(false)
   mocks.live.mockReturnValue(undefined)
   mocks.header.mockResolvedValue({ header: { id: 'chat', name: 'Desktop conversation', type: 'chat' }, revision: 5 })

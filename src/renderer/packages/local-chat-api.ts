@@ -12,6 +12,23 @@ import { isSessionGenerating } from '@/stores/sessionActivityStore'
 const pendingChats = new Set<string>()
 const errors = new Map<string, string>()
 
+// Field report: with the transcription service stopped, the phone read
+// "Voice: Access is denied" - Electron's session fetch reports a refused
+// local port as ERROR_ACCESS_DENIED on Windows (and "fetch failed" in the
+// Node stack), so a dead service masquerades as a permissions problem.
+// Translate connection-level failures into what the user can actually act
+// on; genuine HTTP statuses keep their own message.
+function voiceConnectionIssue(error: unknown, url: string, label: string): string | null {
+  const detail = error instanceof Error ? error.message : String(error)
+  if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
+    return `${label} at ${url} did not answer in time. Try again in a moment.`
+  }
+  if (/access is denied|fetch failed|failed to fetch|networkerror|err_connection|err_failed|err_network|econnrefused|econnreset|enotfound/i.test(detail)) {
+    return `${label} is not reachable at ${url}. Start the service, or fix its URL in Desktop Settings → Default Models.`
+  }
+  return null
+}
+
 // Mic-mode answer style (voice: true sends). The reply is only ever heard, so
 // one generation pass produces speech-ready text - no separate rewrite stage.
 // Stored as part of the user message: it rides the history, so every later
@@ -96,6 +113,8 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
         if (typeof parsed.text !== 'string') return { status: 502, body: { error: 'Transcription server returned no text.' } }
         return { status: 200, body: { text: parsed.text.trim() } }
       } catch (error) {
+        const issue = voiceConnectionIssue(error, asrUrl, 'Transcription service')
+        if (issue) return { status: 502, body: { error: issue } }
         return { status: 502, body: { error: error instanceof Error ? error.message : 'Transcription failed.' } }
       }
     }
@@ -114,6 +133,9 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
         for (let i = 0; i < bytes.length; i += 32768) encoded += String.fromCharCode(...bytes.subarray(i, i + 32768))
         return { status: 200, body: { audioBase64: btoa(encoded), contentType: blob.type || 'audio/mpeg' } }
       } catch (error) {
+        const ttsUrl = settingsStore.getState().getSettings().textToSpeech?.apiBaseUrl?.trim() || 'the speech server'
+        const issue = voiceConnectionIssue(error, ttsUrl, 'Speech service')
+        if (issue) return { status: 502, body: { error: issue } }
         return { status: 502, body: { error: error instanceof Error ? error.message : 'Speech synthesis failed.' } }
       }
     }
