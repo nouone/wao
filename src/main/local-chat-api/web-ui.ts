@@ -112,7 +112,7 @@ if(pendingPair){el('token').required=false;el('token').hidden=true;document.quer
 // pioneered it; knobs deliberately few (ChatGPT voice mode shape).
 (function(){
 var RATE=16000,WINDOW=24,HOT=14;
-function prerollMax(){return calStart?400:25}
+function prerollMax(){return calStart?400:110}
 var on=false,ctx,stream,proc,cancelAudio,resumeAudio,cal=[],silRms=0.012,calStart=0;
 var ring=[],ringLen=0,sampling=false,chunks=[],chunkLen=0,silTimer=null,maxTimer=null;var voicedFrames=0,captureDuringPlayback=false,captureSentence="";
 var queue=[],playing=false,armedBits=[],captureInterrupted=false,playbackId=0,voiceSession=0;
@@ -145,7 +145,7 @@ function idleDisposition(core,active,hasStash){if(COMMANDS.has(core))return acti
 async function transcribe(samples,duringPlayback,interrupted,sentence,voiced){
   var session=voiceSession,current=version;
   var voicedS=voiced/100,durS=samples.length/RATE;
-  var minimumVoice=duringPlayback?0.12:0.35;
+  var minimumVoice=duringPlayback?0.08:0.25;
   if(durS<0.35||voicedS<minimumVoice){
     if(!playing)vstatus(interrupted?"Go ahead":"Nothing heard");
     api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"capture too short: voiced "+voicedS.toFixed(2)+"s dur "+durS.toFixed(2)+"s"})}).catch(function(){});
@@ -302,7 +302,7 @@ function onframe(frame){
   }
   pushRing(frame);
   var voiced=zc<8,barge=playing&&cfg().barge;
-  var hit=voiced&&rms>silRms*(barge?2:2.5);
+  var hit=voiced&&rms>silRms*(barge?1.8:2);
   if(!sampling){
     if(playing&&!barge)return;
     if(hit){beginCapture();voicedFrames=1}
@@ -326,7 +326,7 @@ function onframe(frame){
   }
 }
 
-function start(){if(on)return;if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){status('Microphone needs HTTPS or localhost (secure context).',true);return}try{var a=el('voice-audio');a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.play().catch(function(){})}catch(e){}navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:false,channelCount:1}}).then(function(s){stream=s;ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:RATE});return ctx.resume()}).then(function(){var source=ctx.createMediaStreamSource(stream);proc=ctx.createScriptProcessor(256,1,1);var ratio=ctx.sampleRate/RATE;var pending=new Float32Array(160),pendLen=0;proc.onaudioprocess=function(e){var input=e.inputBuffer.getChannelData(0);var out=new Float32Array(input.length/ratio|0);for(var i=0;i<out.length;i++)out[i]=input[Math.min(input.length-1,Math.floor(i*ratio))];e.outputBuffer.getChannelData(0).fill(0);var p=0;/* ScriptProcessor needs a power-of-two buffer; frames stay 160 samples via this accumulator (160 is not a power of two). */while(p<out.length){var take=Math.min(160-pendLen,out.length-p);pending.set(out.subarray(p,p+take),pendLen);pendLen+=take;p+=take;if(pendLen===160){var frame=pending;pending=new Float32Array(160);pendLen=0;if(sampling){chunks.push(frame);chunkLen+=frame.length}onframe(frame)}}};var sink=ctx.createGain();source.connect(proc);proc.connect(sink);sink.connect(ctx.destination);on=true;cal=[0.0];calStart=Date.now();ring=[];ringLen=0;armedBits=[];el('voice').hidden=false;el('mic').classList.add('live');vstatus('Calibrating, stay quiet...');orb().classList.add('armed')}).catch(function(error){status('Microphone unavailable: '+error.message,true);stop()})}
+function start(){if(on)return;if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){status('Microphone needs HTTPS or localhost (secure context).',true);return}try{var a=el('voice-audio');a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.play().catch(function(){})}catch(e){}navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}}).then(function(s){stream=s;ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:RATE});return ctx.resume()}).then(function(){var source=ctx.createMediaStreamSource(stream);proc=ctx.createScriptProcessor(256,1,1);var ratio=ctx.sampleRate/RATE;var pending=new Float32Array(160),pendLen=0;proc.onaudioprocess=function(e){var input=e.inputBuffer.getChannelData(0);var outLen=input.length/ratio|0;var out=new Float32Array(outLen);for(var i=0;i<outLen;i++){var pos=i*ratio,p0=pos|0,p1=Math.min(input.length-1,p0+1),fr=pos-p0;out[i]=input[p0]*(1-fr)+input[p1]*fr}e.outputBuffer.getChannelData(0).fill(0);var p=0;/* ScriptProcessor needs a power-of-two buffer; frames stay 160 samples via this accumulator (160 is not a power of two). */while(p<out.length){var take=Math.min(160-pendLen,out.length-p);pending.set(out.subarray(p,p+take),pendLen);pendLen+=take;p+=take;if(pendLen===160){var frame=pending;pending=new Float32Array(160);pendLen=0;if(sampling){chunks.push(frame);chunkLen+=frame.length}onframe(frame)}}};var sink=ctx.createGain();source.connect(proc);proc.connect(sink);sink.connect(ctx.destination);on=true;cal=[0.0];calStart=Date.now();ring=[];ringLen=0;armedBits=[];el('voice').hidden=false;el('mic').classList.add('live');vstatus('Calibrating, stay quiet...');orb().classList.add('armed')}).catch(function(error){status('Microphone unavailable: '+error.message,true);stop()})}
 function stop(){voiceSession++;on=false;sampling=false;clearTimeout(silTimer);clearTimeout(maxTimer);stopSpeaking();if(proc){try{proc.disconnect()}catch(e){}proc=null}if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}if(ctx){ctx.close().catch(function(){});ctx=null}el('voice').hidden=true;el('mic').classList.remove('live');orb().classList.remove('armed')}
 el('mic').onclick=function(){on?stop():start()};
 el('voice-settings').onclick=function(){el('voice-drawer').classList.toggle('open')};
