@@ -66,6 +66,23 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
     fs.writeFileSync(temporary, value, { mode: 0o600 })
     fs.renameSync(temporary, target)
   }
+  const resolveVoiceStream = (): { binPath: string; modelDir: string; port?: number } | null => {
+    const raw = process.env.WAO_ASR_STREAM?.trim()
+    if (!raw) return null
+    try {
+      const parsed = JSON.parse(raw) as { binPath?: unknown; modelDir?: unknown; port?: unknown }
+      if (typeof parsed.binPath === 'string' && typeof parsed.modelDir === 'string') {
+        return {
+          binPath: parsed.binPath,
+          modelDir: parsed.modelDir,
+          ...(Number.isInteger(parsed.port) ? { port: parsed.port as number } : {}),
+        }
+      }
+    } catch {
+      log.warn('[Wao API] WAO_ASR_STREAM is not valid JSON; streaming voice off')
+    }
+    return null
+  }
   const manager = createLocalApiManager({
     preferences: {
       enabled: process.env.WAO_API_ENABLED === undefined ? saved.enabled === true : process.env.WAO_API_ENABLED === '1',
@@ -83,6 +100,11 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
         dispatch,
         publicOrigin,
         lanAddress,
+        // Streaming voice (the web page's dumb-pipe mode): configured via
+        // WAO_ASR_STREAM='{"binPath":"...exe","modelDir":"..."}' in the
+        // launch environment (C:\ProgramData\wao-launch.cmd on this host).
+        // Unset = page keeps the legacy whole-utterance HTTP transcription.
+        voiceStream: resolveVoiceStream(),
         // The snapshot poll loop must not stack reads onto an already-busy
         // renderer: during generation its main thread is rendering the stream,
         // and 4 polls/second of a 100-message window competed with it (field:

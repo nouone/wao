@@ -10,6 +10,8 @@ import {
 import { BROWSER_COOKIE, browserCookie, createBrowserPairing, readBrowserCookie } from './browser-pairing'
 import { LOCAL_CHAT_WEB_UI } from './web-ui'
 import { createWebChatPresentation } from './presentation'
+import { EnergyEndpointer, SAMPLE_RATE } from './asr-endpoint'
+import { SherpaEngine } from './asr-sherpa'
 
 class RequestError extends Error {
   constructor(
@@ -48,6 +50,12 @@ export async function startLocalChatApi(options: {
   lanAddress?: string
   /** True when the renderer IPC queue is saturated; the snapshot loop skips a poll. */
   rendererBusy?: () => boolean
+  /**
+   * Streaming voice: when set, /api/voice/stream accepts raw mic PCM and the
+   * desktop does segmentation + transcription (sherpa-onnx). When unset the
+   * page keeps its legacy whole-utterance HTTP path.
+   */
+  voiceStream?: { binPath: string; modelDir: string; port?: number } | null
 }) {
   if (options.token.length < 32) throw new Error('The API token must have at least 32 characters.')
   let currentToken = options.token
@@ -250,24 +258,92 @@ export async function startLocalChatApi(options: {
   server.requestTimeout = 15000
   server.headersTimeout = 10000
   const sockets = new WebSocketServer({ noServer: true, maxPayload: 4096, handleProtocols: () => 'wao-api' })
+  // Streaming voice session: the page ships raw Int16 PCM; the endpointer
+  // segments by energy (calibrated per connection), SherpaEngine transcribes
+  // whole utterances over the offline websocket protocol. The engine process
+  // is spawned lazily on first use and stopped when the API closes.
+  const voiceEngine = options.voiceStream
+    ? new SherpaEngine({
+        binPath: options.voiceStream.binPath,
+        modelDir: options.voiceStream.modelDir,
+        port: options.voiceStream.port ?? 9101,
+      })
+    : null
+  const voiceServer = new WebSocketServer({ noServer: true, maxPayload: 96 * 1024, handleProtocols: () => 'wao-api' })
   server.on('upgrade', (req, socket, head) => {
     const protocols = String(req.headers['sec-websocket-protocol'] || '')
       .split(',')
       .map((v) => v.trim())
     const token =
       req.headers.authorization?.replace(/^Bearer /i, '') || (protocols[0] === 'wao-api' ? protocols[1] : '') || ''
+    const route = (req.url || '').split('?')[0]
+    const isVoice = Boolean(voiceEngine) && route === '/api/voice/stream'
+    const target = isVoice ? voiceServer : sockets
+    const capacity = isVoice ? voiceServer.clients.size < 2 : route === '/api/events' && sockets.clients.size < 8
     if (
-      req.url !== '/api/events' ||
+      (!isVoice && route !== '/api/events') ||
+      !capacity ||
       !hostAllowed(req) ||
       !originAllowed(req) ||
-      (!authorized(token) && !browserAuthorized(req)) ||
-      sockets.clients.size >= 8
+      (!authorized(token) && !browserAuthorized(req))
     ) {
       socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n')
       return
     }
-    sockets.handleUpgrade(req, socket, head, (ws) => sockets.emit('connection', ws))
+    target.handleUpgrade(req, socket, head, (ws) => target.emit('connection', ws))
   })
+  if (voiceEngine) {
+    voiceServer.on('connection', (ws) => {
+      let queue: Promise<void> = Promise.resolve()
+      const send = (msg: Record<string, unknown>) => {
+        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg))
+      }
+      const endpointer = new EnergyEndpointer({ onState: (s) => send({ t: 'state', s }) })
+      endpointer.on('utterance', (pcm: Float32Array, meta: { totalMs: number; voicedMs: number }) => {
+        // Serialize decodes per connection: results must arrive in speech order.
+        queue = queue.then(async () => {
+          try {
+            const text = await voiceEngine!.transcribe(pcm)
+            send({ t: 'final', text, totalMs: meta.totalMs })
+          } catch (error) {
+            send({ t: 'error', error: error instanceof Error ? error.message : 'Transcription failed.' })
+          }
+        })
+      })
+      endpointer.on('rejected', (meta: { totalMs: number; voicedMs: number }) => send({ t: 'rejected', ...meta }))
+      ws.on('message', (data, isBinary) => {
+        try {
+          if (isBinary) {
+            const bytes: Uint8Array = Buffer.isBuffer(data)
+              ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
+              : Array.isArray(data)
+                ? (() => {
+                    const parts = data.map((p) => (Buffer.isBuffer(p) ? new Uint8Array(p.buffer, p.byteOffset, p.byteLength) : new Uint8Array(p as ArrayBuffer)))
+                    const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0))
+                    let o = 0
+                    for (const p of parts) {
+                      out.set(p, o)
+                      o += p.length
+                    }
+                    return out
+                  })()
+                : new Uint8Array(data as ArrayBuffer)
+            const view = new DataView(bytes.buffer, bytes.byteOffset, Math.floor(bytes.byteLength / 2) * 2)
+            const samples = new Float32Array(view.byteLength / 2)
+            for (let i = 0; i < samples.length; i++) samples[i] = view.getInt16(i * 2, true) / 32768
+            endpointer.push(samples)
+            return
+          }
+          const msg = JSON.parse(String(data)) as { t?: string; silenceMs?: number }
+          if (msg.t === 'cfg' && typeof msg.silenceMs === 'number') endpointer.setSilenceMs(msg.silenceMs)
+          else if (msg.t === 'reset') endpointer.reset()
+        } catch {
+          // Malformed frames are dropped; the stream keeps flowing.
+        }
+      })
+      ws.on('close', () => endpointer.reset())
+    })
+  }
   sockets.on('connection', (ws) => {
     let chatId: string | undefined
     let browserView = false
@@ -384,12 +460,16 @@ export async function startLocalChatApi(options: {
       currentToken = token
       pairing.cancel()
       for (const ws of sockets.clients) ws.terminate()
+      for (const ws of voiceServer.clients) ws.terminate()
       server.closeAllConnections()
       lanServer?.closeAllConnections()
     },
     close: async () => {
       for (const ws of sockets.clients) ws.terminate()
       sockets.close()
+      for (const ws of voiceServer.clients) ws.terminate()
+      voiceServer.close()
+      voiceEngine?.stop()
       server.closeAllConnections()
       lanServer?.closeAllConnections()
       await Promise.all([

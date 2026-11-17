@@ -115,6 +115,48 @@ var RATE=16000,WINDOW=24,HOT=14;
 function prerollMax(){return calStart?400:110}
 var on=false,ctx,stream,proc,cancelAudio,resumeAudio,cal=[],silRms=0.012,calStart=0;
 var ring=[],ringLen=0,sampling=false,chunks=[],chunkLen=0,silTimer=null,maxTimer=null;var voicedFrames=0,captureDuringPlayback=false,captureSentence="";
+// Streaming voice: the page is a dumb mic pipe. An AudioWorklet frames the
+// raw 16 kHz mono signal as Int16 chunks; the desktop endpointer segments
+// and transcribes (main/local-chat-api/asr-endpoint.ts). streamWs stays
+// null when the desktop has no WAO_ASR_STREAM engine, and then the legacy
+// browser-VAD path below (startLegacy) keeps voice working, degraded.
+var streamWs=null,work=null,source=null,buf=[],bufLen=0,onbuffer=false,streamFails=0;
+var WORKLET_CODE="class C extends AudioWorkletProcessor{process(i,o,){var inp=i[0][0];if(inp){var n=inp.length|0,b=new Int16Array(n),sum=0;for(var k=0;k<n;k++){var v=inp[k];sum+=v*v;b[k]=Math.max(-32768,Math.min(32767,(v*32767)|0))}this.port.postMessage({b:b.buffer,r:Math.sqrt(sum/n)},[b.buffer])}return true}}registerProcessor('wao-capture',C);";
+function bargeOn(){return segv("voice-barge")==="on"}
+function openStream(){
+  var proto=location.protocol==="https:"?"wss://":"ws://";
+  var ws=new WebSocket(proto+location.host+"/api/voice/stream",token?["wao-api",token]:["wao-api"]);
+  streamWs=ws;
+  ws.onopen=function(){
+    streamFails=0;
+    ws.send(JSON.stringify({t:"cfg",silenceMs:Number(segv("voice-timing"))||1200}));
+    if(bufLen){for(var i=0;i<buf.length;i++)ws.send(buf[i]);buf=[];bufLen=0;onbuffer=false}
+  };
+  ws.onmessage=function(event){
+    try{
+      var d=JSON.parse(event.data);
+      if(d.t==="state"){
+        if(d.s==="calibrating")vstatus("Calibrating, stay quiet...");
+        else if(d.s==="listening")vstatus(playing?"Speaking...":"Listening");
+        else if(d.s==="recording")vstatus("Hearing you...");
+      }else if(d.t==="final"){
+        routeFinal(d.text,playing&&bargeOn(),captureInterrupted,spokenNow,voiceSession,version);
+      }else if(d.t==="rejected"){
+        if(!playing)vstatus("Nothing heard");
+      }else if(d.t==="error"){
+        status("Voice: "+(d.error||"transcription failed"),true);
+        if(!playing)vstatus("Listening");
+      }
+    }catch(e){}
+  };
+  ws.onclose=function(){
+    if(streamWs===ws)streamWs=null;
+    if(!on)return;
+    if(++streamFails>=2){vstatus("Voice: local mode");startLegacy();return}
+    setTimeout(function(){if(on&&streamWs===null)openStream()},1200);
+  };
+  ws.onerror=function(){try{ws.close()}catch(e){}};
+}
 var queue=[],playing=false,armedBits=[],captureInterrupted=false,playbackId=0,voiceSession=0;
 function orb(){return el('voice-orb')}
 function vstatus(t){el('voice-status').textContent=t;var d=el('voice-dots');if(d)d.style.visibility=(t==='Thinking...')?'visible':'hidden'}
@@ -125,7 +167,7 @@ try{var saved=JSON.parse(localStorage.getItem('wao.voice')||'{}');if(saved.effor
 if(!document.querySelector('#voice-think button.on'))segSet('voice-think','off');
 if(!document.querySelector('#voice-barge button.on'))segSet('voice-barge','on');
 if(!document.querySelector('#voice-timing button.on'))segSet('voice-timing','1200');
-['voice-think','voice-barge','voice-timing'].forEach(function(id){document.querySelectorAll('#'+id+' button').forEach(function(b){b.onclick=function(){segSet(id,b.getAttribute('data-v'));try{localStorage.setItem('wao.voice',JSON.stringify({effort:segv('voice-think'),barge:segv('voice-barge'),win:segv('voice-timing')}))}catch(e){}}})})
+['voice-think','voice-barge','voice-timing'].forEach(function(id){document.querySelectorAll('#'+id+' button').forEach(function(b){b.onclick=function(){segSet(id,b.getAttribute('data-v'));try{localStorage.setItem('wao.voice',JSON.stringify({effort:segv('voice-think'),barge:segv('voice-barge'),win:segv('voice-timing')}))}catch(e){}if(id==='voice-timing'&&streamWs&&streamWs.readyState===1)streamWs.send(JSON.stringify({t:'cfg',silenceMs:Number(segv('voice-timing'))}))}})})
 function wav16(samples){var n=samples.length,buf=new DataView(new ArrayBuffer(44+n*2));function w(o,s){for(var i=0;i<s.length;i++)buf.setUint8(o+i,s.charCodeAt(i))}w(0,'RIFF');buf.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');buf.setUint16(16,1,true);buf.setUint16(20,1,true);buf.setUint32(24,RATE,true);buf.setUint32(28,RATE*2,true);buf.setUint16(32,2,true);buf.setUint16(34,16,true);w(36,'data');buf.setUint32(40,n*2,true);for(var i=0;i<n;i++)buf.setInt16(44+i*2,Math.max(-32768,Math.min(32767,samples[i]*32767)),true);return buf.buffer}
 function b64(buf){var bytes=new Uint8Array(buf),s='';for(var i=0;i<bytes.length;i+=32768)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+32768));return btoa(s)}
 function stats(frame){var sum=0,zc=0;for(var i=0;i<frame.length;i++){var v=frame[i];sum+=v*v;if(i&&(v>=0)!==(frame[i-1]>=0))zc++}return {rms:Math.sqrt(sum/frame.length),zc:zc}}
@@ -154,40 +196,7 @@ async function transcribe(samples,duringPlayback,interrupted,sentence,voiced){
   if(!playing)vstatus("Thinking...");
   try{
     var j=await api("/api/voice/asr",{method:"POST",body:JSON.stringify({audio:b64(wav16(samples))})});
-    if(!on||session!==voiceSession||current!==version)return;
-    var text=String(j.text||"").trim();
-    if(!text){
-      if(!playing)vstatus(interrupted?"Go ahead":"Listening");
-      return;
-    }
-    // A short, explicit control should survive the word-level echo filter.
-    var raw=normCmd(text),sub=echoSubtract(text);
-    var core=COMMANDS.has(raw)||RESUMES.has(raw)?raw:normCmd(sub.core);
-    if(!core){
-      if(!playing)vstatus(interrupted?"Go ahead":"Listening");
-      return;
-    }
-    var act=duringPlayback?bargeDisposition(core):idleDisposition(core,sending||playing,resumeTail.length>0);
-    if(act==="drop"||act==="stop"){
-      stopSpeaking();
-      vstatus("Go ahead");
-      api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"voice stop command recognized"})}).catch(function(){});
-      return;
-    }
-    if(act==="noop"){
-      vstatus("Listening");
-      return;
-    }
-    if(act==="resume"){
-      if(resumeTail.length){
-        stopSpeaking();
-        queue=resumeTail.slice();
-        playQueue();
-      }else if(!playing)vstatus("Listening");
-      return;
-    }
-    if(duringPlayback)stopSpeaking();
-    turn(text,sentence);
+    routeFinal(String(j.text||""),duringPlayback,interrupted,sentence,session,current);
   }catch(error){
     if(on&&session===voiceSession&&current===version){
       status("Voice: "+error.message,true);
@@ -195,6 +204,47 @@ async function transcribe(samples,duringPlayback,interrupted,sentence,voiced){
     }
   }
 }
+// Route a finalized transcript: stop/go-on commands act locally, anything
+// else becomes a chat turn. Shared by the streaming 'final' event and the
+// legacy whole-utterance HTTP fallback. Echo subtraction keeps a phone
+// speaker's own voice from being heard back as a new command.
+function routeFinal(text,duringPlayback,interrupted,sentence,session,current){
+  if(!on||session!==voiceSession||current!==version)return;
+  text=String(text||"").trim();
+  if(!text){
+    if(!playing)vstatus(interrupted?"Go ahead":"Listening");
+    return;
+  }
+  // A short, explicit control should survive the word-level echo filter.
+  var raw=normCmd(text),sub=echoSubtract(text);
+  var core=COMMANDS.has(raw)||RESUMES.has(raw)?raw:normCmd(sub.core);
+  if(!core){
+    if(!playing)vstatus(interrupted?"Go ahead":"Listening");
+    return;
+  }
+  var act=duringPlayback?bargeDisposition(core):idleDisposition(core,sending||playing,resumeTail.length>0);
+  if(act==="drop"||act==="stop"){
+    stopSpeaking();
+    vstatus("Go ahead");
+    api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"voice stop command recognized"})}).catch(function(){});
+    return;
+  }
+  if(act==="noop"){
+    vstatus("Listening");
+    return;
+  }
+  if(act==="resume"){
+    if(resumeTail.length){
+      stopSpeaking();
+      queue=resumeTail.slice();
+      playQueue();
+    }else if(!playing)vstatus("Listening");
+    return;
+  }
+  if(duringPlayback)stopSpeaking();
+  turn(sub.remainder||text,interrupted?sentence:"");
+}
+
 function turn(text,interruptedSentence){
   var chatId=selected,current=version;
   if(!chatId)return;
@@ -326,8 +376,10 @@ function onframe(frame){
   }
 }
 
-function start(){if(on)return;if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){status('Microphone needs HTTPS or localhost (secure context).',true);return}try{var a=el('voice-audio');a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.play().catch(function(){})}catch(e){}navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}}).then(function(s){stream=s;ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:RATE});return ctx.resume()}).then(function(){var source=ctx.createMediaStreamSource(stream);proc=ctx.createScriptProcessor(256,1,1);var ratio=ctx.sampleRate/RATE;var pending=new Float32Array(160),pendLen=0;proc.onaudioprocess=function(e){var input=e.inputBuffer.getChannelData(0);var outLen=input.length/ratio|0;var out=new Float32Array(outLen);for(var i=0;i<outLen;i++){var pos=i*ratio,p0=pos|0,p1=Math.min(input.length-1,p0+1),fr=pos-p0;out[i]=input[p0]*(1-fr)+input[p1]*fr}e.outputBuffer.getChannelData(0).fill(0);var p=0;/* ScriptProcessor needs a power-of-two buffer; frames stay 160 samples via this accumulator (160 is not a power of two). */while(p<out.length){var take=Math.min(160-pendLen,out.length-p);pending.set(out.subarray(p,p+take),pendLen);pendLen+=take;p+=take;if(pendLen===160){var frame=pending;pending=new Float32Array(160);pendLen=0;if(sampling){chunks.push(frame);chunkLen+=frame.length}onframe(frame)}}};var sink=ctx.createGain();source.connect(proc);proc.connect(sink);sink.connect(ctx.destination);on=true;cal=[0.0];calStart=Date.now();ring=[];ringLen=0;armedBits=[];el('voice').hidden=false;el('mic').classList.add('live');vstatus('Calibrating, stay quiet...');orb().classList.add('armed')}).catch(function(error){status('Microphone unavailable: '+error.message,true);stop()})}
-function stop(){voiceSession++;on=false;sampling=false;clearTimeout(silTimer);clearTimeout(maxTimer);stopSpeaking();if(proc){try{proc.disconnect()}catch(e){}proc=null}if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}if(ctx){ctx.close().catch(function(){});ctx=null}el('voice').hidden=true;el('mic').classList.remove('live');orb().classList.remove('armed')}
+function start(){if(on)return;if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){status('Microphone needs HTTPS or localhost (secure context).',true);return}try{var a=el('voice-audio');a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.play().catch(function(){})}catch(e){}navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}}).then(function(s){stream=s;ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:RATE});return ctx.resume()}).then(function(){return ctx.audioWorklet.addModule('data:text/javascript,'+encodeURIComponent(WORKLET_CODE))}).then(function(){source=ctx.createMediaStreamSource(stream);work=new AudioWorkletNode(ctx,'wao-capture');work.port.onmessage=function(e){if(!on)return;var d=e.data;var bar=document.querySelector("#voice-level i");if(bar)bar.style.width=Math.min(100,(d.r||0)*800)+"%";if(streamWs&&streamWs.readyState===1){streamWs.send(d.b);return}if(!onbuffer){onbuffer=true;buf=[];bufLen=0}buf.push(d.b);bufLen+=d.b.byteLength;if(bufLen>96000){var drop=buf.shift();if(drop)bufLen-=drop.byteLength}};source.connect(work);work.connect(ctx.destination);openStream();on=true;cal=[0.0];calStart=Date.now();ring=[];ringLen=0;armedBits=[];el('voice').hidden=false;el('mic').classList.add('live');vstatus('Calibrating, stay quiet...');orb().classList.add('armed')}).catch(function(error){if(error&&/worklet|AudioWorkletNode/i.test(String(error&&error.message||error))){vstatus('Voice: local mode');startLegacy();return}status('Microphone unavailable: '+error.message,true);stop()})}
+function startLegacy(){/* Browser-VAD fallback when the desktop stream engine is off. */
+  source=ctx.createMediaStreamSource(stream);proc=ctx.createScriptProcessor(256,1,1);var ratio=ctx.sampleRate/RATE;var pending=new Float32Array(160),pendLen=0;proc.onaudioprocess=function(e){var input=e.inputBuffer.getChannelData(0);var outLen=input.length/ratio|0;var out=new Float32Array(outLen);for(var i=0;i<outLen;i++){var pos=i*ratio,p0=pos|0,p1=Math.min(input.length-1,p0+1),fr=pos-p0;out[i]=input[p0]*(1-fr)+input[p1]*fr}e.outputBuffer.getChannelData(0).fill(0);var p=0;while(p<out.length){var take=Math.min(160-pendLen,out.length-p);pending.set(out.subarray(p,p+take),pendLen);pendLen+=take;p+=take;if(pendLen===160){var frame=pending;pending=new Float32Array(160);pendLen=0;if(sampling){chunks.push(frame);chunkLen+=frame.length}onframe(frame)}}};var sink=ctx.createGain();source.connect(proc);proc.connect(sink);sink.connect(ctx.destination);on=true;cal=[0.0];calStart=Date.now();ring=[];ringLen=0;armedBits=[];el('voice').hidden=false;el('mic').classList.add('live');vstatus('Calibrating, stay quiet...');orb().classList.add('armed')}
+function stop(){voiceSession++;on=false;sampling=false;clearTimeout(silTimer);clearTimeout(maxTimer);stopSpeaking();if(work){try{work.port.close();work.disconnect()}catch(e){}work=null}if(source){try{source.disconnect()}catch(e){}source=null}if(streamWs){var dying=streamWs;streamWs=null;try{dying.close()}catch(e){}}buf=[];bufLen=0;onbuffer=false;streamFails=0;if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}if(ctx){ctx.close().catch(function(){});ctx=null}el('voice').hidden=true;el('mic').classList.remove('live');orb().classList.remove('armed')}
 el('mic').onclick=function(){on?stop():start()};
 el('voice-settings').onclick=function(){el('voice-drawer').classList.toggle('open')};
 el('voice-exit').onclick=stop;
