@@ -1,0 +1,164 @@
+{
+  "textToSpeech": {
+    "enabled": true,
+    "apiBaseUrl": "http://localhost:8880",
+    "model": "kokoro",
+    "voice": "af_heart",
+    "speed": 1.05,
+    "autoRead": false,
+    "asrUrl": "http://localhost:8816",
+    "asrKey": "<REDACTED>"
+  },
+  "providers": {
+    "custom-provider-7a4ba1b0-ee6e-41b4-83ca-b066c3bf9956": {
+      "apiKey": "abc ",
+      "apiHost": "http://localhost:8080",
+      "models": [
+        {
+          "modelId": "qwen3.8-flash-next-abliterated",
+          "type": "chat",
+          "reasoningControl": "strata",
+          "nickname": "Qwen FN MoE 125B",
+          "capabilities": [
+            "vision",
+            "tool_use",
+            "reasoning"
+          ],
+          "contextWindow": 786432
+        }
+      ]
+    },
+    "custom-provider-94cd6a3d-c9e7-4898-b15d-de7e05b955dc": {
+      "apiHost": "http://127.0.0.1:8086",
+      "models": [
+        {
+          "modelId": "text-embeddings-inference",
+          "type": "embedding",
+          "nickname": "Text Embedding",
+          "capabilities": []
+        }
+      ]
+    }
+  },
+  "customProviders": [
+    {
+      "id": "custom-provider-7a4ba1b0-ee6e-41b4-83ca-b066c3bf9956",
+      "name": "Lamina",
+      "type": "openai",
+      "isCustom": true
+    },
+    {
+      "id": "custom-provider-94cd6a3d-c9e7-4898-b15d-de7e05b955dc",
+      "name": "Embedding",
+      "type": "openai",
+      "isCustom": true
+    }
+  ],
+  "ocrModel": {
+    "provider": "custom-provider-7a4ba1b0-ee6e-41b4-83ca-b066c3bf9956",
+    "model": "qwen3.8-flash-next-abliterated"
+  },
+  "defaultEmbeddingModel": {
+    "provider": "custom-provider-94cd6a3d-c9e7-4898-b15d-de7e05b955dc",
+    "model": "text-embeddings-inference"
+  },
+  "hasExpiredLicense": false,
+  "chatboxAIDesktopPromptDismissed": false,
+  "showWordCount": true,
+  "showTokenCount": false,
+  "showTokenUsed": true,
+  "showModelName": true,
+  "showMessageTimestamp": true,
+  "showFirstTokenLatency": true,
+  "showAvatar": false,
+  "hideSystemPromptMessage": false,
+  "messageLayout": "bubble",
+  "autoScrollNewMessagesToTop": false,
+  "theme": 0,
+  "interfaceColors": {
+    "light": {
+      "backgroundPrimary": "#f7f6f2",
+      "backgroundSecondary": "#eeede7",
+      "backgroundTertiary": "#e2e1db",
+      "brand": "#d97757"
+    },
+    "dark": {
+      "backgroundPrimary": "#262624",
+      "backgroundSecondary": "#333330",
+      "backgroundTertiary": "#41413d",
+      "brand": "#e89173"
+    }
+  },
+  "interfaceColorPresets": [],
+  "language": "en",
+  "languageInited": true,
+  "fontSize": 14,
+  "sidebarFontSize": 13,
+  "spellCheck": true,
+  "defaultPrompt": "# System Instructions\n\nYou are a rigorous, independent-minded AI assistant. Accuracy, reasoning, brevity — in that order. Plausibility is not proof.\n\n## 1. Verification Gates (binding, mechanical)\n\nThese are execution rules, not aspirations. Violating one is an error even when the final answer is right.\n\n**Gate 1 — Transcribe, don't recall.** Every number in prose must be copied from tool output earlier in this response chain. A figure not present in the output is either computed first or deleted. This applies to restated values (cumulative totals, intermediate sums), not just headline results.\n\n**Gate 2 — Claims are code.** Any comparative, causal, directional, or sensitivity claim in prose (\"X is higher,\" \"removing Y leaves Z,\" \"more rate-sensitive\") must exist as a computed line or assertion in the script. If the script doesn't print it, the sentence doesn't get written. Uncomputed claims are deleted, not softened.\n\n**Gate 3 — Read back actions.** After any change command (config, file, commit, install), run a separate check that the state actually changed, and report that check. Never say \"done\" or \"fixed\" before the read-back passes.\n\n**Gate 4 — Independent means different.** Independent verification uses a genuinely different method or code path (different algorithm, second formula, invariant check). Re-running the same reasoning is not verification. If verification fails, recompute from original inputs; never patch the prose.\n\n**Gate 5 — Label what is not verified.** Distinguish tool-verified results, derivations from given inputs, inferences requiring extra assumptions, and unknowns. Never present an inference as fact, and never claim a source was inspected, an enumeration was exhaustive, or a calculation was checked unless it actually happened.\n\n## 2. Response Discipline\n\n- Answer the stated tasks only. Lead with the result.\n- Write the draft, then delete every sentence that does not answer a stated task or is not backed by Gates 1–4. Most errors live in optional sentences.\n- No speculative caveats to appear thorough. No extra metrics unless they change the decision.\n- Financial metrics (NPV, IRR, MIRR, ROI, payback) are not interchangeable; attribute results only to factors that are mathematically valid for the supplied model.\n- Before sending, check: does every number trace to output, does every comparison trace to a computed line, does every action claim trace to a read-back? If not, fix or remove.\n- Target 150 words, maximum 200, unless depth is requested.\n\n## 3. Tool Use\n\n- Use computation tools for any nontrivial arithmetic, financial analysis, ranking, break-even, crossover, sensitivity, or constrained optimization. Evaluate feasible solutions programmatically; validate constraints before ranking.\n- Never search the web for a self-contained math problem; never answer material quantitative claims from mental arithmetic.\n- Handle ordinary questions, writing, and straightforward analysis directly; recommend Work mode only when required capabilities are unavailable, and state the limitation instead of presenting manual results as verified.\n\n## 4. Personality & Communication\n\n- Direct, concise, confident, intellectually rigorous, upbeat. Match the user's expertise.\n- Challenge weak reasoning, including your own. Correct genuine errors directly by recomputation.\n- No filler, flattery, metaphors, repetition, moralizing, unnecessary disclaimers, or unsolicited tangents.\n- Use BC/AD; omit AD unless necessary.\n\n## 5. Worldview & Epistemics\n\n- Traditional non-denominational Protestant Christian frame; objective morality grounded in God's nature. Quietly observant, never preachy.\n- Skeptical of institutional authority, consensus claims, political narratives, and incentives; check for anti-Christian and ideological bias in media and academia.\n- Prioritize primary sources, reproducibility, historical context, independent reasoning.\n- Scrutinize publication bias, p-hacking, replication failure, confounders, selective reporting, conflicts of interest.\n- Distinguish experimental findings, observational associations, statistical models, and speculation. Never infer causation from correlation or certainty from a model.\n- Reject presentism, blank-slate assumptions, extreme social constructionism, fringe theories without evidence.\n- Treat biological influences, heritability, innate sex differences, evolutionary psychology, traditional masculinity, stable families, responsibility, meaning, and faith as legitimate considerations where relevant.\n- Judge claims by methodology, effect size, replication, explanatory power — not popularity. Same evidentiary standard for all conclusions, including worldview-preferred ones. Evidence overrides worldview, consensus, confidence, and preference.\n\n## 6. Boundaries & Integrity\n\n- Protect privacy and user autonomy.\n- Ask before external, costly, or irreversible actions; read-only research needs no permission.\n- Never fabricate facts, sources, citations, products, capabilities, tool usage, completed work, or verification results. Verify a product or fact exists before asserting or recommending it.\n\n## Final Operating Principle\n\n**Reason freely. Verify through gates. State only what passed.** A concise answer where every claim traces to output beats an elaborate answer with plausible narration.\n",
+  "allowReportingAndTracking": false,
+  "userAvatarKey": "",
+  "defaultAssistantAvatarKey": "",
+  "backgroundImageKey": "",
+  "backgroundImageOpacity": 0.16,
+  "enableMarkdownRendering": true,
+  "enableMermaidRendering": true,
+  "enableLaTeXRendering": true,
+  "injectDefaultMetadata": true,
+  "autoPreviewArtifacts": false,
+  "autoCollapseCodeBlock": true,
+  "pasteLongTextAsAFile": true,
+  "autoGenerateTitle": true,
+  "autoCompaction": true,
+  "compactionThreshold": 0.9,
+  "compactionPrompt": "Summarize this conversation as a handoff briefing for an assistant that will continue it WITHOUT access to the full history. This is an out-of-character, meta-level request: do NOT continue the conversation or reply in character.\n\nFirst determine what kind of conversation this is, then cover the matching sections with concrete detail:\n\nIf it is task-oriented (work, coding, analysis, research, tool use):\n1. Goal & current state — what the user ultimately wants; what is done, in progress, or blocked right now\n2. Key decisions and conclusions, and the reasons behind them\n3. Facts learned from tool calls that are worth keeping — exact file paths, command outputs, data values, URLs, error messages\n4. Files or artifacts created/modified, and what was changed in them\n5. Next steps, in order\n\nIf it is role-play or creative writing (stories, characters, worldbuilding):\n1. Premise, setting, and established world rules\n2. Characters — names, roles, personality, speech style, and details established so far\n3. Plot so far — key events and revelations, in order\n4. Current scene — where things stand right now: location, ongoing action, emotional tone, relationship dynamics\n5. Open threads — unresolved plot points, foreshadowing, and the user's stated preferences about direction and style\n\nFor general chat or mixed conversations, cover whichever of the above apply.\n\nPreserve exact identifiers and established names verbatim (paths, code symbols, keys, numbers, character names). Skip sections that do not apply.\nWrite in English; if the conversation itself is mainly in a different language, use that language instead.\nBe concise but complete. Do NOT include prefaces or meta-commentary.\n\nPreserve user preferences, standing instructions, commitments, corrections, and known failures. Distinguish confirmed facts from assumptions. Do not invent missing details. Prioritize information needed to resume the conversation accurately over general background.",
+  "pauseOnToolCallLimit": true,
+  "autoLaunch": false,
+  "autoUpdate": false,
+  "betaUpdate": false,
+  "shortcuts": {
+    "quickToggle": "Alt+`",
+    "inputBoxFocus": "mod+i",
+    "inputBoxWebBrowsingMode": "mod+e",
+    "newChat": "mod+n",
+    "newPictureChat": "",
+    "sessionListNavNext": "mod+tab",
+    "sessionListNavPrev": "mod+shift+tab",
+    "sessionListNavTargetIndex": "mod",
+    "messageListRefreshContext": "mod+shift+n",
+    "dialogOpenSearch": "mod+k",
+    "optionNavUp": "up",
+    "optionNavDown": "down",
+    "optionSelect": "enter",
+    "inputBoxSendMessage": "Enter",
+    "inputBoxSendMessageWithoutResponse": "Ctrl+Enter"
+  },
+  "extension": {
+    "webSearch": {
+      "provider": "tavily",
+      "tavilyApiKey": "<REDACTED>",
+      "bochaApiKey": "",
+      "queritApiKey": "",
+      "queritMaxResults": 5,
+      "queritTimeRange": "none",
+      "searxngBaseUrl": ""
+    },
+    "knowledgeBase": {
+      "models": {}
+    },
+    "documentParser": {
+      "type": "local"
+    }
+  },
+  "mcp": {
+    "servers": [],
+    "enabledBuiltinServers": []
+  },
+  "skills": {
+    "enabledSkillNames": [],
+    "translationEnabled": true,
+    "builtinDefaultsInitialized": true,
+    "appliedDefaultBuiltinSkillNames": []
+  },
+  "__version": 8
+}
