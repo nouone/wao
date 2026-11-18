@@ -269,6 +269,21 @@ it('validates JSON, text, body size and pagination before invoking desktop', asy
   expect((await request('/api/chats?limit=0')).status).toBe(400)
   expect(dispatch).not.toHaveBeenCalled()
 })
+it('serves the voice worklet same-origin with a script-safe CSP and strict page headers', async () => {
+  const { request } = await setup()
+  const worklet = await request('/api/voice/worklet.js', { auth: false })
+  expect(worklet.status).toBe(200)
+  expect(worklet.headers['Content-Type']).toContain('text/javascript')
+  // The whole point: WebKit enforces CSP on audioWorklet.addModule, and the
+  // page's script-src 'unsafe-inline' rejects data: modules. The file must
+  // carry no script-src of its own that could block it, and must define the
+  // processor name the page requests.
+  expect(worklet.headers['Content-Security-Policy']).not.toMatch(/script-src/)
+  expect(worklet.body).toContain("registerProcessor('wao-capture'")
+  const page = await request('/', { auth: false })
+  expect(page.headers['Content-Security-Policy']).toContain("script-src 'unsafe-inline'")
+  expect(page.body).toContain("addModule('/api/voice/worklet.js')")
+})
 it('serves a standalone browser page with no embedded token or external script', async () => {
   const { request } = await setup()
   const r = await request('/', { auth: false })

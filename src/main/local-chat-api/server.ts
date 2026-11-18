@@ -12,6 +12,7 @@ import { LOCAL_CHAT_WEB_UI } from './web-ui'
 import { createWebChatPresentation } from './presentation'
 import { EnergyEndpointer, SAMPLE_RATE } from './asr-endpoint'
 import { SherpaEngine } from './asr-sherpa'
+import { VOICE_WORKLET_CODE } from './voice-worklet'
 
 class RequestError extends Error {
   constructor(
@@ -118,6 +119,18 @@ export async function startLocalChatApi(options: {
             "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; media-src 'self' blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
         })
         res.end(LOCAL_CHAT_WEB_UI)
+        return
+      }
+      if (req.method === 'GET' && url.pathname === '/api/voice/worklet.js') {
+        // Same strict CSP as the page; script-src 'unsafe-inline' does not
+        // list data:, so the worklet must be served as a same-origin file.
+        res.writeHead(200, {
+          'Content-Type': 'text/javascript; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'Content-Security-Policy':
+            "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+        })
+        res.end(VOICE_WORKLET_CODE)
         return
       }
       if (req.method === 'POST' && url.pathname === '/api/pair') {
