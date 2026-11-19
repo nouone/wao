@@ -96,6 +96,58 @@ it('continues the selected desktop chat, renders response text safely, and sends
   expect(document.querySelectorAll('select').length).toBe(1) // Conversation picker only; voice mode uses segmented tap controls, still no model picker.
 })
 
+it('pastes an image from the clipboard into the pending photo chip and sends it with the message', async () => {
+  // Field request (#22 works, "image attach works but not from clipboard"):
+  // iOS offers Copy in Photos and screenshot crops; the page must accept a
+  // paste event in the message box, not only the camera button.
+  const { fetch } = await setup()
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4, 5, 6])
+  const file = new File([png], 'clipboard.png', { type: 'image/png' })
+  const items = [{ kind: 'file', type: 'image/png', getAsFile: () => file }]
+  const pasted = fireEvent.paste(document.getElementById('content')!, { clipboardData: { items, getData: () => '' } })
+  await waitFor(() => expect(document.getElementById('snap-chip')!.hidden).toBe(false))
+  expect(document.getElementById('snap-name')!.textContent).toBe('clipboard.png')
+  expect(pasted).toBe(false) // preventDefault called: text paste suppressed
+  // send enabled with no text typed (image alone is a valid send)
+  expect((document.getElementById('send') as HTMLButtonElement).disabled).toBe(false)
+  fireEvent.input(document.getElementById('content')!, { target: { value: 'what is this?' } })
+  fireEvent.submit(document.getElementById('composer')!)
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/chats/existing-chat/messages',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"image"'),
+      })
+    )
+  )
+  const call = fetch.mock.calls.find((c: unknown[]) => String(c[0]).includes('/messages'))
+  const body = JSON.parse(String(call && (call[1] as { body: string }).body))
+  expect(body.content).toBe('what is this?')
+  expect(body.image.mime).toBe('image/png')
+  expect(body.image.data).toBe('iVBORw0KGgoBAgMEBQY=')
+  // chip cleared for the next message
+  expect(document.getElementById('snap-chip')!.hidden).toBe(true)
+})
+
+it('leaves text pastes untouched and rejects non-image pastes', async () => {
+  const { fetch } = await setup()
+  const textPaste = fireEvent.paste(document.getElementById('content')!, {
+    clipboardData: { items: [{ kind: 'string', type: 'text/plain', getAsFile: () => null }], getData: () => 'copied words' },
+  })
+  expect(textPaste).toBe(true) // not prevented: default text insertion happens
+  expect(document.getElementById('snap-chip')!.hidden).toBe(true)
+  const pdf = new File([new Uint8Array(20)], 'doc.pdf', { type: 'application/pdf' })
+  fireEvent.paste(document.getElementById('content')!, {
+    clipboardData: { items: [{ kind: 'file', type: 'application/pdf', getAsFile: () => pdf }], getData: () => '' },
+  })
+  // non-image file pastes are ignored silently (a copied document or link is
+  // not a photo attempt); only image/* files reach the chip and its checks
+  expect(document.getElementById('snap-chip')!.hidden).toBe(true)
+  expect(document.getElementById('status')!.dataset.error).toBe('false')
+  expect(fetch).not.toHaveBeenCalledWith(expect.stringContaining('/messages'), expect.objectContaining({ method: 'POST' }))
+})
+
 it('replaces the optimistic send bubble with the real message instead of leaving a duplicate at the bottom', async () => {
   // Field report (build #14): typing on the phone, the reply rendered, and then
   // the same user text appeared again at the very bottom - the unkeyed

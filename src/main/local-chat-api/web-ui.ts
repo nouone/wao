@@ -69,13 +69,19 @@ function buttons(){el('content').disabled=!selected||loading;el('send').disabled
 var snapData=null,snapMime='';
 function clearSnap(){snapData=null;snapMime='';el('snap-chip').hidden=true;el('snap-thumb').removeAttribute('src');el('snap-name').textContent='';el('snap-file').value='';buttons()}
 el('snap').onclick=function(){el('snap-file').click()};
-el('snap-file').onchange=function(){var f=el('snap-file').files&&el('snap-file').files[0];if(!f){clearSnap();return}
-  if(!/^image[/](png|jpeg|webp|gif)$/.test(f.type)){status('Photo must be PNG, JPEG, WebP or GIF.',true);el('snap-file').value='';return}
-  if(f.size>6*1024*1024){status('Photo is too large (max 6 MB).',true);el('snap-file').value='';return}
+function setSnapFromFile(f){
+  if(!/^image[/](png|jpeg|webp|gif)$/.test(f.type)){status('Photo must be PNG, JPEG, WebP or GIF.',true);return}
+  if(f.size>6*1024*1024){status('Photo is too large (max 6 MB).',true);return}
   var reader=new FileReader();
-  reader.onload=function(){var u=String(reader.result||'');var c=u.indexOf(',');snapData=u.slice(c+1);snapMime=f.type;el('snap-thumb').src=u;el('snap-name').textContent=f.name;el('snap-chip').hidden=false;buttons()};
-  reader.onerror=function(){status('Could not read the photo.',true);el('snap-file').value=''};
-  reader.readAsDataURL(f)};
+  reader.onload=function(){var u=String(reader.result||'');var c=u.indexOf(',');snapData=u.slice(c+1);snapMime=f.type;el('snap-thumb').src=u;el('snap-name').textContent=f.name||'pasted image';el('snap-chip').hidden=false;buttons()};
+  reader.onerror=function(){status('Could not read the photo.',true)};
+  reader.readAsDataURL(f)}
+el('snap-file').onchange=function(){var f=el('snap-file').files&&el('snap-file').files[0];if(!f){clearSnap();return}setSnapFromFile(f);el('snap-file').value=''};
+// Paste a photo straight into the message box (iOS: Share > Copy from Photos,
+// or a screenshot crop; desktop browsers too). The paste event carries the
+// image as a file - no clipboard permission prompt, unlike navigator.clipboard.
+// Text pastes fall through untouched.
+el('content').onpaste=function(event){var items=event.clipboardData&&event.clipboardData.items;if(!items||snapData)return;for(var i=0;i<items.length;i++){var item=items[i];if(item.kind==='file'&&/^image[/]/.test(item.type)){var f=item.getAsFile();if(f){event.preventDefault();setSnapFromFile(f)}return}}};
 el('snap-clear').onclick=clearSnap;
 async function api(path,options={}){const response=await fetch(path,{...options,cache:'no-store',credentials:'same-origin',headers:{...(token?{Authorization:'Bearer '+token}:{}),...(options.body?{'Content-Type':'application/json'}:{})}});const body=await response.json();if(!response.ok){const error=Error(body.error||'Request failed ('+response.status+')');error.status=response.status;throw error}return body}
 function stopSpeech(){if(speechController)speechController.abort();speechController=undefined;if(speechAudio){speechAudio.onended=null;speechAudio.onerror=null;speechAudio.pause();speechAudio.removeAttribute('src');speechAudio.hidden=true}if(speechURL)URL.revokeObjectURL(speechURL);if(speechButton)speechButton.textContent='Read aloud';speechAudio=undefined;speechURL=undefined;speechButton=undefined}
@@ -138,7 +144,7 @@ var ring=[],ringLen=0,sampling=false,chunks=[],chunkLen=0,silTimer=null,maxTimer
 // null when the desktop has no WAO_ASR_STREAM engine, and then the legacy
 // browser-VAD path below (startLegacy) keeps voice working, degraded.
 var streamWs=null,work=null,source=null,buf=[],bufLen=0,onbuffer=false,streamFails=0,stage='';
-var PAGE_BUILD='#22';
+var PAGE_BUILD='#23';
 // The capture worklet is served same-origin at /api/voice/worklet.js (the
 // page CSP pins script-src to 'unsafe-inline', so a data: module URL would
 // be blocked by Safari; see main/local-chat-api/voice-worklet.ts).
