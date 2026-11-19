@@ -12,14 +12,22 @@ export const VOICE_WORKLET_CODE = `class WaoCaptureProcessor extends AudioWorkle
     const input = inputs[0] && inputs[0][0]
     if (input) {
       const n = input.length | 0
-      const out = new Int16Array(n)
+      // The desktop endpointer expects 16 kHz. WebKit lets an AudioContext be
+      // created at 16000 (so ratio is normally 1); if a future engine pins the
+      // hardware rate instead, linear-decimate here so the stream stays honest.
+      const ratio = sampleRate / 16000
+      const outLen = ratio > 1 ? (n / ratio) | 0 : n
+      const out = new Int16Array(outLen)
       let sum = 0
-      for (let i = 0; i < n; i++) {
-        const v = input[i]
+      for (let j = 0; j < outLen; j++) {
+        const pos = ratio > 1 ? j * ratio : j
+        const i0 = pos | 0
+        const fr = pos - i0
+        const v = ratio > 1 && i0 + 1 < n ? input[i0] * (1 - fr) + input[i0 + 1] * fr : input[Math.min(i0, n - 1)]
         sum += v * v
-        out[i] = Math.max(-32768, Math.min(32767, (v * 32767) | 0))
+        out[j] = Math.max(-32768, Math.min(32767, (v * 32767) | 0))
       }
-      this.port.postMessage({ b: out.buffer, r: Math.sqrt(sum / n) }, [out.buffer])
+      this.port.postMessage({ b: out.buffer, r: Math.sqrt(sum / outLen) }, [out.buffer])
     }
     return true
   }
