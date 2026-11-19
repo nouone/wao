@@ -281,7 +281,10 @@ it('serves the voice worklet same-origin with a script-safe CSP and strict page 
   expect(worklet.headers['Content-Security-Policy']).not.toMatch(/script-src/)
   expect(worklet.body).toContain("registerProcessor('wao-capture'")
   const page = await request('/', { auth: false })
-  expect(page.headers['Content-Security-Policy']).toContain("script-src 'unsafe-inline'")
+  expect(page.headers['Content-Security-Policy']).toContain("script-src 'self' 'unsafe-inline'")
+  // WebKit enforces the document script-src on audioWorklet.addModule: 'self'
+  // must be present or the worklet load dies with SecurityError (field #21).
+  expect(page.headers['Content-Security-Policy']).toMatch(/script-src[^;]*\bself\b/)
   expect(page.body).toContain("addModule('/api/voice/worklet.js')")
 })
 it('serves a standalone browser page with no embedded token or external script', async () => {

@@ -116,7 +116,14 @@ export async function startLocalChatApi(options: {
           'Content-Type': 'text/html; charset=utf-8',
           'Cache-Control': 'no-store',
           'Content-Security-Policy':
-            "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; media-src 'self' blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+            // 'self' is required for the audio worklet module: WebKit
+            // enforces the document's script-src on audioWorklet.addModule,
+            // and 'unsafe-inline' alone permits ONLY inline scripts - the
+            // same-origin /api/voice/worklet.js load is an external script
+            // and was rejected with a bare SecurityError (field #21:
+            // "mic fail [worklet]: SecurityError | ctx=y stream=y").
+            // 'self' adds no remote origins; the page has no other scripts.
+            "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; media-src 'self' blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
         })
         res.end(LOCAL_CHAT_WEB_UI)
         return
