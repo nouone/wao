@@ -173,7 +173,7 @@ export async function startLocalChatApi(options: {
         return
       }
       let call: LocalChatCall
-      const match = /^\/api\/chats\/([^/]+)(\/messages)?$/.exec(url.pathname)
+      const match = /^\/api\/chats\/([^/]+)(\/messages|\/stop|\/steer)?$/.exec(url.pathname)
       const speechMatch = /^\/api\/chats\/([^/]+)\/messages\/([^/]+)\/speech$/.exec(url.pathname)
       if (req.method === 'POST' && url.pathname === '/api/voice/asr') {
         // Raw capture from a browser voice frontend: WAV bytes as base64
@@ -211,6 +211,10 @@ export async function startLocalChatApi(options: {
       } else if (req.method === 'GET' && url.pathname === '/api/chats') call = { action: 'list' }
       else if (req.method === 'GET' && match && !match[2])
         call = { action: 'read', chatId: decodeURIComponent(match[1]) }
+      else if (req.method === 'POST' && match?.[2] === '/stop')
+        call = { action: 'stop', chatId: decodeURIComponent(match[1]) }
+      else if (req.method === 'POST' && match?.[2] === '/steer')
+        call = { action: 'steer', chatId: decodeURIComponent(match[1]) }
       else if (req.method === 'POST' && match?.[2]) {
         // Image attachments ride the same JSON body (base64); this route gets
         // a 10 MB ceiling while everything else keeps the 64 KB default.

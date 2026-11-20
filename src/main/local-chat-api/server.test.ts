@@ -269,6 +269,16 @@ it('validates JSON, text, body size and pagination before invoking desktop', asy
   expect((await request('/api/chats?limit=0')).status).toBe(400)
   expect(dispatch).not.toHaveBeenCalled()
 })
+it('routes stop and steer posts for a conversation to the renderer boundary', async () => {
+  const { request, dispatch } = await setup()
+  dispatch.mockResolvedValue({ status: 200, body: { stopped: true } })
+  expect((await request('/api/chats/chat-id/stop', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status).toBe(200)
+  expect(dispatch).toHaveBeenLastCalledWith({ action: 'stop', chatId: 'chat-id', limit: 50 })
+  dispatch.mockResolvedValue({ status: 200, body: { steered: true } })
+  expect((await request('/api/chats/chat-id/steer', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status).toBe(200)
+  expect(dispatch).toHaveBeenLastCalledWith({ action: 'steer', chatId: 'chat-id', limit: 50 })
+  expect((await request('/api/chats/chat-id/stop', { method: 'POST', auth: false })).status).toBe(401)
+})
 it('serves the voice worklet same-origin with a script-safe CSP and strict page headers', async () => {
   const { request } = await setup()
   const worklet = await request('/api/voice/worklet.js', { auth: false })

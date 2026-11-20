@@ -14,6 +14,10 @@ const mocks = vi.hoisted(() => ({
   direct: vi.fn(),
   speakText: vi.fn(),
   blobSet: vi.fn().mockResolvedValue(undefined),
+  enqueue: vi.fn(),
+  steer: vi.fn(),
+  queues: vi.fn(),
+  stopAll: vi.fn(),
 }))
 vi.mock('@/app/renderer-application', () => ({
   rendererApplication: {
@@ -41,6 +45,14 @@ vi.mock('@/storage/StoreStorage', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/storage/StoreStorage')>()
   return { ...actual, StorageKeyGenerator: { ...actual.StorageKeyGenerator, picture: (scope: string) => `picture:${scope}:fixed-test-key` } }
 })
+vi.mock('@/stores/session/message-queue', () => ({
+  enqueueUserMessage: (...args: unknown[]) => mocks.enqueue(...args),
+  requestSteerFirstQueuedMessage: (...args: unknown[]) => mocks.steer(...args),
+  messageQueueStore: { getState: () => ({ queues: mocks.queues() }) },
+}))
+vi.mock('@/stores/session/generation-cancellation', () => ({
+  stopAllMessageGenerations: (...args: unknown[]) => mocks.stopAll(...args),
+}))
 vi.mock('@/stores/session/crud', () => ({ createEmpty: mocks.create }))
 vi.mock('@/stores/session/messages', () => ({ submitNewUserMessage: mocks.send }))
 vi.mock('@/stores/settingsStore', () => ({
@@ -143,6 +155,10 @@ it('creates a new chat through the same desktop New Chat controller', async () =
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.settings.mockReturnValue({})
+  mocks.enqueue.mockReturnValue('queued')
+  mocks.steer.mockReturnValue(true)
+  mocks.queues.mockReturnValue({})
+  mocks.stopAll.mockResolvedValue(undefined)
   mocks.busy.mockReturnValue(false)
   mocks.live.mockReturnValue(undefined)
   mocks.header.mockResolvedValue({ header: { id: 'chat', name: 'Desktop conversation', type: 'chat' }, revision: 5 })
@@ -163,13 +179,60 @@ it('uses exactly the desktop Send controller and preserves the existing conversa
     })
   )
 })
-it('rejects busy and missing chats without submitting or constructing a second client', async () => {
+it('queues a web send while the conversation is generating, instead of rejecting it', async () => {
+  // Field: "no way to inject ... on mobile but desktop has these features".
+  // A phone send during a running reply now rides the desktop message queue.
   mocks.busy.mockReturnValue(true)
-  expect((await handleLocalChatCall({ action: 'send', chatId: 'busy', content: 'hello' })).status).toBe(409)
+  const result = await handleLocalChatCall({ action: 'send', chatId: 'busy', content: 'inject this' })
+  expect(result).toEqual({
+    status: 202,
+    body: expect.objectContaining({ status: 'queued', chatId: 'busy' }) as object,
+  })
+  expect(mocks.enqueue).toHaveBeenCalledWith(
+    'busy',
+    expect.objectContaining({
+      role: 'user',
+      suppressDesktopAutoRead: true,
+      contentParts: [{ type: 'text', text: 'inject this' }],
+    })
+  )
+  expect(mocks.send).not.toHaveBeenCalled() // direct submit path untouched
+  // queue full keeps the caller informed so the draft is not lost silently
+  mocks.enqueue.mockReturnValueOnce('full')
+  expect((await handleLocalChatCall({ action: 'send', chatId: 'busy', content: 'x' })).status).toBe(429)
+  mocks.busy.mockReturnValue(false)
+})
+
+it('stops and steers a running desktop conversation over the API', async () => {
+  mocks.busy.mockReturnValue(true)
+  const stopped = await handleLocalChatCall({ action: 'stop', chatId: 'chat' })
+  expect(stopped.status).toBe(200)
+  expect((stopped.body as { stopped: boolean }).stopped).toBe(true)
+  expect(mocks.stopAll).toHaveBeenCalledWith('chat')
+  const steered = await handleLocalChatCall({ action: 'steer', chatId: 'chat' })
+  expect(steered.status).toBe(200)
+  expect(mocks.steer).toHaveBeenCalledWith('chat')
+  mocks.steer.mockReturnValueOnce(false)
+  expect((await handleLocalChatCall({ action: 'steer', chatId: 'chat' })).status).toBe(409)
+  mocks.busy.mockReturnValue(false)
+  // missing chats still 404 on read (unchanged contract)
   mocks.header.mockResolvedValueOnce(null)
   expect((await handleLocalChatCall({ action: 'read', chatId: 'missing' })).status).toBe(404)
-  expect(mocks.send).not.toHaveBeenCalled()
 })
+
+it('exposes pending desktop-queue items in read payloads', async () => {
+  mocks.queues.mockReturnValueOnce({
+    chat: [
+      { kind: 'message', id: 'q1', createdAt: 1, message: { id: 'q1', role: 'user', contentParts: [{ type: 'text', text: 'waiting item' }] } },
+      { kind: 'message', id: 'q2', inFlight: true, createdAt: 2, message: { id: 'q2', role: 'user', contentParts: [{ type: 'text', text: 'delivering now' }] } },
+      { kind: 'compaction', id: 'q3' },
+    ],
+  })
+  const result = await handleLocalChatCall({ action: 'read', chatId: 'chat' })
+  expect(result.status).toBe(200)
+  expect(result.body).toMatchObject({ queued: [{ id: 'q1', text: 'waiting item' }] })
+})
+
 it('reads history from the shared session repository, including partial assistant text', async () => {
   mocks.history.mockResolvedValueOnce({
     messages: [

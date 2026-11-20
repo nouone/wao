@@ -44,6 +44,10 @@ Tap the orb to start voice mode; the microphone arms and the orb pulses. Speak y
 
 Voice mode requires Desktop running with Whisper and read-aloud configured, plus the HTTPS page; the plain LAN page has no microphone.
 
+## Injecting and stopping while a reply runs
+
+The phone page now carries the desktop composer's full control set. While a reply is streaming: the Send arrow becomes a **queue** button - type and send anyway, and the message waits in Desktop's queue, visible as a chip below the transcript and in Desktop's queue bar, then delivers in order when the reply finishes (it stays silent on Desktop's auto-read, like every web turn). A red **Stop** button appears beside it and cancels the running reply exactly like the desktop button; the queue pauses with it and resumes when you send again. Tap **Steer** on a queued chip to pull that message into the running reply at its next step - the same steering the desktop offers, available when the model supports it.
+
 ## Revoke or disconnect
 
 - **Forget this device** on the browser login panel clears that browser's stored connection.

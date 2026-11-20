@@ -73,6 +73,22 @@ export const VOICE_INSTRUCTION =
 // threads when scanning stored user messages (see the send handler).
 const VOICE_MARKER = 'You are responding through a voice interface.'
 
+// Pending desktop-queue items for the web read payload: text previews of
+// not-yet-delivered entries. In-flight items are skipped - their text is
+// already in the transcript as the live user message, and listing both
+// would double the bubble on the page.
+async function webQueueItems(chatId: string): Promise<{ id: string; text: string }[]> {
+  try {
+    const { messageQueueStore } = await import('@/stores/session/message-queue')
+    const items = messageQueueStore.getState().queues[chatId] ?? []
+    return items.flatMap((item) =>
+      item.kind === 'message' && !item.inFlight ? [{ id: item.id, text: getMessageText(item.message) }] : []
+    )
+  } catch {
+    return []
+  }
+}
+
 async function voiceThreadHasInstruction(chatId: string): Promise<boolean> {
   try {
     const page = await rendererApplication.sessions.readSessionTranscriptWindow({
@@ -227,6 +243,9 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
           name: source.header.name,
           revision: source.revision,
           generating: pendingChats.has(call.chatId) || isSessionGenerating(call.chatId),
+          // Desktop's queue, visible on the web page (field: injected
+          // messages were invisible there): pending items only, as text.
+          queued: await webQueueItems(call.chatId),
           waitingForApproval: locks?.awaitingPauseDecision || false,
           compacting: locks?.compactionRunning || false,
           error: errors.get(call.chatId),
@@ -278,6 +297,27 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
         },
       }
     }
+    if (call.action === 'stop') {
+      // Desktop's Stop button, remote: same cancellation controller
+      // (generation-cancellation.stopAllMessageGenerations). Nothing running
+      // is a no-op 200, so the page button never needs to race the snapshot.
+      const active = pendingChats.has(call.chatId) || isSessionGenerating(call.chatId)
+      if (active) pendingChats.delete(call.chatId)
+      const { stopAllMessageGenerations } = await import('@/stores/session/generation-cancellation')
+      await stopAllMessageGenerations(call.chatId)
+      return { status: 200, body: { stopped: active } }
+    }
+    if (call.action === 'steer') {
+      // Desktop's steering, remote: the first queued text-only message jumps
+      // into the running generation at its next step boundary. Requires the
+      // model to support steering (same isSteerableQueuedMessage check the
+      // desktop queue uses); false is reported, not swallowed.
+      const { requestSteerFirstQueuedMessage } = await import('@/stores/session/message-queue')
+      const requested = requestSteerFirstQueuedMessage(call.chatId)
+      return requested
+        ? { status: 200, body: { steered: true } }
+        : { status: 409, body: { error: 'No queue item can steer right now (model may not support steering).' } }
+    }
     if (
       call.action !== 'send' ||
       typeof call.content !== 'string' ||
@@ -285,14 +325,20 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
       (!call.content.trim() && !call.image)
     )
       return { status: 400, body: { error: 'Invalid message' } }
-    if (pendingChats.has(call.chatId) || isSessionGenerating(call.chatId))
-      return { status: 409, body: { error: 'Conversation is already generating' } }
+    // Desktop composer parity (field: "no way to inject or stop a desktop
+    // session on mobile"): while a reply streams, a web send ENQUEUES behind
+    // it through the same message-queue controller the desktop uses - the
+    // item shows in Desktop's queue bar and drains in order. Only hard locks
+    // (pending tool approval) still reject. The drain copies
+    // suppressDesktopAutoRead to the assistant reply, so queued web turns
+    // stay silent on Desktop like direct ones.
+    const busyNow = pendingChats.has(call.chatId) || isSessionGenerating(call.chatId)
     const locks = await getSessionLockStateNow(call.chatId)
     if (!locks) return { status: 404, body: { error: 'Conversation not found' } }
-    const gate = getSessionActionGate('submit-message', locks)
-    if (!gate.allowed) return { status: 409, body: { error: `Conversation blocked: ${gate.reason}` } }
-    if (pendingChats.has(call.chatId))
-      return { status: 409, body: { error: 'Conversation is already processing a message' } }
+    if (!busyNow) {
+      const gate = getSessionActionGate('submit-message', locks)
+      if (!gate.allowed) return { status: 409, body: { error: `Conversation blocked: ${gate.reason}` } }
+    }
     // Phone image attachment: validate, then store the bytes in the same blob
     // store the desktop composer's images use (data-URL value), so the
     // message renders in Desktop and reaches the vision model unchanged. The
@@ -355,6 +401,16 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
           body: { error: error instanceof Error ? `thinkingEffort failed: ${error.message}` : 'thinkingEffort could not be applied' },
         }
       }
+    }
+    if (busyNow) {
+      // Queue, don't reject: the desktop message-queue controller persists the
+      // item, shows it in Desktop's queue bar, and drains it in order (with
+      // steering available meanwhile).
+      const { enqueueUserMessage } = await import('@/stores/session/message-queue')
+      const queued = enqueueUserMessage(chatId, message)
+      if (queued === 'full') return { status: 429, body: { error: 'The message queue is full on Desktop.' } }
+      if (queued === 'persist-failed') return { status: 500, body: { error: 'Could not store the queued message.' } }
+      return { status: 202, body: { status: 'queued', chatId, messageId: message.id } }
     }
     pendingChats.add(chatId)
     errors.delete(chatId)
