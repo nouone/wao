@@ -148,6 +148,40 @@ it('leaves text pastes untouched and rejects non-image pastes', async () => {
   expect(fetch).not.toHaveBeenCalledWith(expect.stringContaining('/messages'), expect.objectContaining({ method: 'POST' }))
 })
 
+it('keeps message nodes addressable for orientation anchors and survives rotation events without throwing', async () => {
+  // Field: rotating the phone lost the scroll position ("have to scroll
+  // bigly"). The page now anchors scroll to the first visible message via
+  // data-mid; jsdom has no layout so restore is a no-op, but the wiring
+  // (attributes stamped, listeners registered, events dispatched) must hold.
+  const { fetch } = await setup()
+  const first = document.querySelector('#messages article')!
+  expect(first).not.toBeNull()
+  expect(first.getAttribute('data-mid')).toBe('a') // snapshot message id
+  const before = fetch.mock.calls.length
+  window.innerWidth = 900 // simulate landscape
+  window.dispatchEvent(new Event('resize'))
+  window.dispatchEvent(new Event('orientationchange'))
+  await new Promise((r) => setTimeout(r, 250)) // resize debounce is 150 ms
+  expect(fetch.mock.calls.length).toBe(before) // no network storm from rotation
+  expect(document.getElementById('messages')!.children.length).toBeGreaterThan(0)
+})
+
+it('names HEIC pastes as the iPhone-format problem with a workaround', async () => {
+  // Field: "take a screenshot then delete and keep it, clipboard cant paste".
+  // iOS Photos hands the paste event a HEIC the browser cannot decode; the
+  // old generic rejection hid the actual cause and the fix.
+  const { fetch } = await setup()
+  const heic = new File([new Uint8Array(24)], 'IMG_42.jpg', { type: 'image/heic' })
+  fireEvent.paste(document.getElementById('content')!, {
+    clipboardData: { items: [{ kind: 'file', type: 'image/heic', getAsFile: () => heic }], getData: () => '' },
+  })
+  await waitFor(() => expect(document.getElementById('status')!.dataset.error).toBe('true'))
+  expect(document.getElementById('status')!.textContent).toContain('HEIC')
+  expect(document.getElementById('status')!.textContent).toContain('camera button')
+  expect(document.getElementById('snap-chip')!.hidden).toBe(true)
+  expect(fetch).not.toHaveBeenCalledWith(expect.stringContaining('/messages'), expect.objectContaining({ method: 'POST' }))
+})
+
 it('replaces the optimistic send bubble with the real message instead of leaving a duplicate at the bottom', async () => {
   // Field report (build #14): typing on the phone, the reply rendered, and then
   // the same user text appeared again at the very bottom - the unkeyed
