@@ -59,7 +59,7 @@ const el=id=>document.getElementById(id);
 let pendingPair = new URLSearchParams(location.hash.slice(1)).get('pair') || '';if(pendingPair)history.replaceState(null,'',location.pathname+location.search);
 let token='',selected='',socket,version=0,sending=false,generating=false,waitingApproval=false,stopping=false,loading=false,nextCursor=null,chatList=[],nodes=new Map(),retryTimer,progressTimer,retryCount=0,reconnecting=false,activitySince=0,lastChat,lastReadStatus=0,chatsDirty=true,reconcilePending=false,speechController,speechAudio,speechURL,speechButton;
 const status=(text,error=false)=>{el('status').textContent=text;el('status').dataset.error=String(error)};
-function buttons(){el('content').disabled=!selected||loading;el('send').disabled=!selected||loading||sending||(!el('content').value.trim()&&!snapData);el('send').textContent=generating?'+':'\u2191';el('send').title=generating?'Queue message':'Send message';el('send').ariaLabel=generating?'Queue message':'Send message';el('stop').disabled=!selected||loading||stopping;el('stop').hidden=!(generating||waitingApproval)&&!stopping;el('mic').disabled=!selected||loading;el('snap').disabled=!selected||loading||Boolean(snapData)}
+function buttons(){el('content').disabled=!selected||loading;el('send').disabled=!selected||loading||sending||(!el('content').value.trim()&&!snapData);el('send').textContent=generating?'+':'↑';el('send').title=generating?'Queue message':'Send message';el('send').ariaLabel=generating?'Queue message':'Send message';el('stop').disabled=!selected||loading||stopping;el('stop').hidden=!(generating||waitingApproval)&&!stopping;el('mic').disabled=!selected||loading;el('snap').disabled=!selected||loading||Boolean(snapData)}
 // Pending photo for the next send: base64 + mime captured locally, shipped
 // inside the messages POST body (no upload route, no multipart). Desktop
 // validates and stores it; the transcript bubble shows the thumbnail until
@@ -70,7 +70,7 @@ var snapData=null,snapMime='';
 function clearSnap(){snapData=null;snapMime='';el('snap-chip').hidden=true;el('snap-thumb').removeAttribute('src');el('snap-name').textContent='';el('snap-file').value='';buttons()}
 el('snap').onclick=function(){el('snap-file').click()};
 function setSnapFromFile(f){
-  if(/heic|heif/i.test(f.type)||/\.(heic|heif)$/i.test(f.name||'')){status('Pasted photo is HEIC (iPhone format). Use the camera button, or Copy as PDF/PNG from Photos.',true);return}if(!/^image[/](png|jpeg|webp|gif)$/.test(f.type)){status('Photo must be PNG, JPEG, WebP or GIF.',true);return}
+  if(/heic|heif/i.test(f.type)||/\\.(heic|heif)$/i.test(f.name||'')){status('Pasted photo is HEIC (iPhone format). Use the camera button, or Copy as PDF/PNG from Photos.',true);return}if(!/^image[/](png|jpeg|webp|gif)$/.test(f.type)){status('Photo must be PNG, JPEG, WebP or GIF.',true);return}
   if(f.size>6*1024*1024){status('Photo is too large (max 6 MB).',true);return}
   var reader=new FileReader();
   reader.onload=function(){var u=String(reader.result||'');var c=u.indexOf(',');snapData=u.slice(c+1);snapMime=f.type;el('snap-thumb').src=u;el('snap-name').textContent=f.name||'pasted image';el('snap-chip').hidden=false;buttons()};
