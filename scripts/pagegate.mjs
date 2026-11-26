@@ -31,6 +31,29 @@ if (start < 0) {
   process.exit(1)
 }
 
+// The template interpolates paletteCss(theme), which lives in web-ui.ts
+// itself. Provide the same helper + palette here so the eval below matches
+// what the module produces (theme-colors is plain enough to inline).
+import { readFileSync as readFs } from 'node:fs'
+const tc = readFs(path.join(here, '..', 'src', 'shared', 'theme-colors.ts'), 'utf8')
+const paletteMatch = tc.match(/export const LAMINA_PALETTE = \{[\s\S]*?\n\}/m)
+if (!paletteMatch) {
+  console.log('GATE FAIL: LAMINA_PALETTE not found in theme-colors.ts (gate needs updating)')
+  process.exit(1)
+}
+let palette
+try {
+  palette = eval('(' + paletteMatch[0].replace('export const LAMINA_PALETTE = ', '') + ')')
+} catch (error) {
+  console.log('GATE FAIL: palette does not evaluate:', error.message)
+  process.exit(1)
+}
+const LAMINA_PALETTE = palette
+const paletteCss = (theme) =>
+  Object.entries(palette[theme])
+    .map(([name, value]) => `--lc-${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}:${value}`)
+    .join(';')
+
 let html
 try {
   html = eval(src.slice(start + marker.length))
