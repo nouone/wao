@@ -422,10 +422,32 @@ export async function startLocalChatApi(options: {
     // painted as an error before the next snapshot cleared it.
     let errorStreak = 0
     let errorSent = 0
+    // Live conversation list (field: the page only tracked the selected chat;
+    // names, new chats and activity on other chats stayed stale until Refresh).
+    // Every 8th tick (~2s), push the list whenever it changed. Same busy guard
+    // as the snapshot poll, so one IPC read at a time per connection.
+    let listTick = 0
+    let previousList = ''
     const timer = setInterval(async () => {
       if (busy || !chatId || ws.readyState !== WebSocket.OPEN) return
       if (options.rendererBusy?.()) return // renderer queue saturated: skip this poll
       busy = true
+      try {
+        if (++listTick >= 8) {
+          listTick = 0
+          const page = await options.dispatch({ action: 'list', limit: 100 })
+          if (page.status === 200 && page.body) {
+            const list = JSON.stringify({ type: 'chat.list', chats: (page.body as { items?: unknown[] }).items ?? [] })
+            if (list !== previousList && ws.readyState === WebSocket.OPEN && ws.bufferedAmount < 2 * 1024 * 1024) {
+              ws.send(list)
+              previousList = list
+            }
+          }
+        }
+      } catch {
+        // A failed list push is transient; the next tick retries. The page
+        // keeps its last known list.
+      }
       try {
         const raw = await options.dispatch({ action: 'read', chatId, limit: 100 })
         const transient = raw.status === 409 || raw.status === 503 || raw.status === 504

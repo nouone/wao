@@ -388,6 +388,25 @@ it('shows a Generating pill while waiting and reply dots while streaming, then c
   expect(activePills()).toHaveLength(0)
 })
 
+it('offers Steer on queued items only when the desktop snapshot says the chat is steerable', async () => {
+  const { sockets } = await setup()
+  const update = (chat: Record<string, unknown>) => sockets[0].onmessage!({data:JSON.stringify({type:'chat.snapshot',status:200,chat:{id:'existing-chat',...chat}})})
+  const steerButtons = () => Array.from(document.querySelectorAll('.qchip button'))
+  update({generating:true,queued:[{id:'q1',text:'jump the line'}],messages:[{id:'reply',role:'assistant',text:'working',generating:true}]})
+  expect(steerButtons()).toHaveLength(0)
+  update({generating:true,steerable:true,queued:[{id:'q1',text:'jump the line'}],messages:[{id:'reply',role:'assistant',text:'working',generating:true}]})
+  expect(steerButtons().map((b) => b.textContent)).toEqual(['Steer'])
+})
+
+it('tracks other conversations live: renames and generating dots arrive on chat.list', async () => {
+  const { sockets } = await setup()
+  sockets[0].onmessage!({data:JSON.stringify({type:'chat.list',chats:[{id:'existing-chat',name:'Renamed on Desktop',generating:true},{id:'other',name:'Idle chat'}]})})
+  const rows = Array.from(document.querySelectorAll('#chats .chat'))
+  expect(rows.map((r) => r.querySelector('.nm')?.textContent)).toEqual(['Renamed on Desktop','Idle chat'])
+  expect(rows[0].querySelector('.gen-dot')).not.toBeNull()
+  expect(rows[1].querySelector('.gen-dot')).toBeNull()
+})
+
 it('offers phone audio controls when Safari requires a second playback tap, and releases audio on chat changes',async()=>{
   Object.defineProperty(URL,'createObjectURL',{configurable:true,value:vi.fn(()=> 'blob:phone-speech')})
   Object.defineProperty(URL,'revokeObjectURL',{configurable:true,value:vi.fn()})

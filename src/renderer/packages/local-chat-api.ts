@@ -1,4 +1,5 @@
 import { getSessionActionGate } from '@chatbox/core/session/action-gates'
+import { isActionAvailableInMode, resolveSessionMode } from '@chatbox/core/session/mode-policy'
 import { getSessionLockStateNow } from '@/stores/session/action-guard'
 import type { LocalChatCall, LocalChatResult } from '@shared/local-chat-api'
 import { createMessage } from '@shared/types'
@@ -125,7 +126,14 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
         body: {
           items: page.items
             .filter((s) => s.type === 'chat' || !s.type)
-            .map((s) => ({ id: s.id, name: s.name, type: s.type })),
+            .map((s) => ({
+              id: s.id,
+              name: s.name,
+              type: s.type,
+              // Live activity for the web chat list (field: the page could not
+              // see which chats were generating; Desktop's sidebar can).
+              generating: pendingChats.has(s.id) || isSessionGenerating(s.id),
+            })),
           nextCursor: page.nextCursor,
           total: page.total,
         },
@@ -243,6 +251,14 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
           name: source.header.name,
           revision: source.revision,
           generating: pendingChats.has(call.chatId) || isSessionGenerating(call.chatId),
+          // Web Steer affordance (field: the page offered Steer in plain chat
+          // mode, where no step boundary exists to inject at). The same rule
+          // the desktop queue bar uses: steering is a work-mode capability,
+          // and the mode lives in the session settings the desktop persists.
+          steerable: isActionAvailableInMode(
+            'steer-queued-message',
+            resolveSessionMode(source.header.settings?.agentMode?.value)
+          ),
           // Desktop's queue, visible on the web page (field: injected
           // messages were invisible there): pending items only, as text.
           queued: await webQueueItems(call.chatId),

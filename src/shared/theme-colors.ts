@@ -30,11 +30,90 @@ export const DEFAULT_INTERFACE_COLORS: InterfaceColors = {
   },
 }
 
+// Colors from Lamina's web palette. Browser chat and the Appearance preset share them.
+export const LAMINA_PALETTE = {
+  light: {
+    background: '#f9fafb',
+    surface: '#ffffff',
+    raised: '#f7f7f7',
+    border: '#dee5ee',
+    subtleBorder: '#eeeeee',
+    ink: '#221e1f',
+    softInk: '#303030',
+    muted: '#6f6f6f',
+    accent: '#10b981',
+    accentHover: '#0c8a60',
+    accentInk: '#052e20',
+    accentText: '#0c8a60',
+    accentTint: '#ecfdf5',
+    focus: '#405de6',
+    danger: '#b01a2e',
+    warning: '#8a5a00',
+    code: '#1b1f23',
+    codeInk: '#e6e9ec',
+  },
+  dark: {
+    background: '#0e1113',
+    surface: '#161a1d',
+    raised: '#1d2226',
+    border: '#2a3036',
+    subtleBorder: '#22272c',
+    ink: '#eef1f3',
+    softInk: '#c7cdd3',
+    muted: '#8e979f',
+    accent: '#34d399',
+    accentHover: '#4ade80',
+    accentInk: '#052e20',
+    accentText: '#4ade80',
+    accentTint: 'rgba(52,211,153,.12)',
+    focus: '#7b93ff',
+    danger: '#ff8a98',
+    warning: '#f8c96a',
+    code: '#0a0c0e',
+    codeInk: '#e6e9ec',
+  },
+} as const
+
+function laminaInterfaceColors(theme: InterfaceTheme): InterfaceThemeColors {
+  const palette = LAMINA_PALETTE[theme]
+  return {
+    backgroundPrimary: palette.background,
+    backgroundSecondary: palette.surface,
+    backgroundTertiary: palette.raised,
+    brand: palette.accent,
+  }
+}
+
+export const LAMINA_INTERFACE_COLORS: InterfaceColors = {
+  light: laminaInterfaceColors('light'),
+  dark: laminaInterfaceColors('dark'),
+}
+
+export function matchesLaminaColors(colors: InterfaceThemeColors, theme: InterfaceTheme): boolean {
+  const lamina = LAMINA_INTERFACE_COLORS[theme]
+  const primary = colors.backgroundPrimary.toLowerCase()
+  const secondary = colors.backgroundSecondary.toLowerCase()
+  // The first Lamina preset stored these two surfaces in the opposite order.
+  const matchesSurfaces =
+    (primary === lamina.backgroundPrimary && secondary === lamina.backgroundSecondary) ||
+    (primary === lamina.backgroundSecondary && secondary === lamina.backgroundPrimary)
+  return (
+    matchesSurfaces &&
+    colors.backgroundTertiary.toLowerCase() === lamina.backgroundTertiary &&
+    colors.brand.toLowerCase() === lamina.brand
+  )
+}
+
 export const INTERFACE_COLOR_PRESETS = [
   {
     id: 'default',
     label: 'Default',
     colors: DEFAULT_INTERFACE_COLORS,
+  },
+  {
+    id: 'lamina',
+    label: 'Lamina',
+    colors: LAMINA_INTERFACE_COLORS,
   },
   {
     id: 'claude-classic',

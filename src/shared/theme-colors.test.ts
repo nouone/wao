@@ -10,9 +10,10 @@ import {
 } from './theme-colors'
 
 describe('INTERFACE_COLOR_PRESETS', () => {
-  it('provides the default, Claude, and Mist Blue presets', () => {
+  it('provides the default, Lamina, Claude, and Mist Blue presets', () => {
     expect(INTERFACE_COLOR_PRESETS.map((preset) => ({ id: preset.id, label: preset.label }))).toEqual([
       { id: 'default', label: 'Default' },
+      { id: 'lamina', label: 'Lamina' },
       { id: 'claude-classic', label: 'Claude Classic' },
       { id: 'mist-blue', label: 'Mist Blue' },
     ])

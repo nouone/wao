@@ -337,6 +337,29 @@ it('publishes snapshots from the renderer repository on authenticated subscripti
   socket.emit('close')
 })
 
+it('pushes the live conversation list on the same subscription (~2s cadence)', async () => {
+  const { server, dispatch } = await setup()
+  vi.useFakeTimers()
+  dispatch.mockImplementation(async (call: { action: string }) =>
+    call.action === 'list'
+      ? { status: 200, body: { items: [{ id: 'a', name: 'Renamed on Desktop', type: 'chat', generating: true }] } }
+      : { status: 200, body: { id: 'a', messages: [] } }
+  )
+  const socket = Object.assign(new EventEmitter(), { readyState: 1, bufferedAmount: 0, send: vi.fn(), close: vi.fn() })
+  server.events.emit('connection', socket)
+  socket.emit('message', JSON.stringify({ type: 'subscribe', chatId: 'a' }))
+  await vi.advanceTimersByTimeAsync(2000)
+  const listMessages = socket.send.mock.calls
+    .map(([frame]) => JSON.parse(frame))
+    .filter((frame) => frame.type === 'chat.list')
+  expect(listMessages.length).toBeGreaterThanOrEqual(1)
+  expect(listMessages[0].chats).toEqual([{ id: 'a', name: 'Renamed on Desktop', type: 'chat', generating: true }])
+  // Unchanged lists are not re-sent: no duplicate frames after the first.
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(socket.send.mock.calls.map(([frame]) => JSON.parse(frame)).filter((f) => f.type === 'chat.list')).toHaveLength(1)
+  socket.emit('close')
+})
+
 it('authenticates reply speech and returns only audio bytes with no-store headers', async () => {
   const {request,dispatch} = await setup()
   const options = {method:'POST',headers:{'content-type':'application/json'},body:'{}'}

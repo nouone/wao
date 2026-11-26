@@ -257,6 +257,39 @@ it('reads history from the shared session repository, including partial assistan
   })
 })
 
+it('marks steerable only for work-mode sessions, matching the desktop queue rule', async () => {
+  mocks.history.mockResolvedValueOnce({ messages: [], older: null })
+  const plain = await handleLocalChatCall({ action: 'read', chatId: 'chat', limit: 50 })
+  expect(plain.body).toMatchObject({ steerable: false })
+  mocks.header.mockResolvedValueOnce({
+    header: { id: 'chat', name: 'Work chat', type: 'chat', settings: { agentMode: { value: 'on' } } },
+    revision: 5,
+  })
+  mocks.history.mockResolvedValueOnce({ messages: [], older: null })
+  const work = await handleLocalChatCall({ action: 'read', chatId: 'chat', limit: 50 })
+  expect(work.body).toMatchObject({ steerable: true })
+})
+
+it('lists conversations with live generating state for the web chat list', async () => {
+  mocks.list.mockResolvedValueOnce({
+    items: [
+      { id: 'busy', name: 'Busy', type: 'chat' },
+      { id: 'idle', name: 'Idle', type: 'chat' },
+    ],
+    nextCursor: null,
+    total: 2,
+  })
+  mocks.busy.mockImplementation((sessionId: string) => sessionId === 'busy')
+  const result = await handleLocalChatCall({ action: 'list', limit: 50 })
+  expect(result.status).toBe(200)
+  expect(result.body).toMatchObject({
+    items: [
+      { id: 'busy', name: 'Busy', generating: true },
+      { id: 'idle', name: 'Idle', generating: false },
+    ],
+  })
+})
+
 it('overlays live engine text so streaming does not wait for the persistence checkpoint', async () => {
   mocks.history.mockResolvedValueOnce({
     messages: [
