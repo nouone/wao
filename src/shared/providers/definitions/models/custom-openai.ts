@@ -1,4 +1,5 @@
 import { engineTimingExtractor } from '../../../models/utils/engine-timing'
+import { withConversationId } from '../../../models/utils/conversation-id'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { extractReasoningMiddleware, wrapLanguageModel } from 'ai'
 import AbstractAISDKModel from '../../../models/abstract-ai-sdk'
@@ -67,13 +68,25 @@ export default class CustomOpenAI extends AbstractAISDKModel {
     return true
   }
 
-  protected getProvider(_options: CallChatCompletionOptions, fetchFunction?: FetchFunction) {
+  protected getProvider(options: CallChatCompletionOptions, fetchFunction?: FetchFunction) {
     return createOpenAICompatible({
       name: this.name,
       metadataExtractor: engineTimingExtractor,
       apiKey: this.options.apiKey,
       baseURL: this.options.apiHost,
       fetch: fetchFunction,
+      // Local engines (Lamina) keep one prompt-cache snapshot per conversation
+      // and can only reuse it if every request carries the same key. The
+      // session id already IS that identity for a chat - it survives
+      // compaction, editing, renaming and restarts, and is never derived from
+      // message content - so this passes it through instead of inventing one.
+      // Rules and rationale: src/shared/models/utils/conversation-id.ts
+      // Gated on conversationCacheKey: side tasks (compaction summary, chat
+      // naming, OCR, agent-mode suggestion) reuse the session id with a
+      // DIFFERENT prompt, and sending the key for those would replace the
+      // chat's snapshot and force a full re-prefill on the next real turn.
+      transformRequestBody: (body) =>
+        withConversationId(body, options?.conversationCacheKey ? options.sessionId : undefined),
       headers: this.options.apiHost.includes('openrouter.ai')
         ? {
             'X-Title': 'Chatbox AI',

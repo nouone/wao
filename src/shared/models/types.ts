@@ -69,6 +69,17 @@ export const CallChatCompletionOptionsSchema = z.object({
 
 export interface CallChatCompletionOptions<Tools extends ToolSet = ToolSet> {
   sessionId?: string
+  /**
+   * This request IS the conversation continuing (a user turn or a tool step),
+   * so engines that key their prompt cache per conversation may reuse it.
+   * Side tasks that merely talk ABOUT a conversation - compaction summaries,
+   * auto-naming, OCR, agent-mode suggestions - carry a different prompt under
+   * the same session id and would replace the chat's cache snapshot with their
+   * own state, forcing a full re-prefill on the next real turn. They must not
+   * set this. Required explicitly rather than inferred from chatStream-vs-chat
+   * so every call site states its intent.
+   */
+  conversationCacheKey?: boolean
   /** Whether Agent/Work Mode capabilities are active for this request. */
   agentMode?: boolean
   signal?: AbortSignal
@@ -95,6 +106,8 @@ export type OnStatusChange = (status: MessageStatus | null) => void
 // New types for chatStream() API
 export interface ChatStreamOptions {
   sessionId?: string
+  /** See CallChatCompletionOptions.conversationCacheKey. */
+  conversationCacheKey?: boolean
   /** Whether Agent/Work Mode capabilities are active for this request. */
   agentMode?: boolean
   signal?: AbortSignal

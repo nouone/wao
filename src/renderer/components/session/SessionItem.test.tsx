@@ -99,6 +99,32 @@ describe('SessionItem', () => {
     expect(container.querySelector('.mantine-Avatar-root')).not.toBeNull()
   })
 
+  test('shows the conversation cache key next to the title and copies it without touching the row', async () => {
+    // The id is what the engine names its per-chat cache snapshot with, so it
+    // has to be readable from the list and copyable - but selecting or copying
+    // it must never rename, drag or switch the chat.
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    renderItem(false)
+    const chip = screen.getByTestId(TestId.sidebar.sessionConversationId)
+    expect(chip.textContent).toBe(session.id)
+
+    fireEvent.pointerDown(chip)
+    fireEvent.click(chip)
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(session.id))
+    expect(toastAddMock).toHaveBeenCalled()
+    expect(screen.getByTestId(TestId.sidebar.sessionTitle).textContent).toBe(session.name)
+    expect(document.querySelector('input')).toBeNull() // no rename editor opened
+    expect(updateSessionHeaderMock).not.toHaveBeenCalled()
+  })
+
+  test('double-clicking the id chip does not start a rename', () => {
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockResolvedValue(undefined) }, configurable: true })
+    renderItem(true)
+    fireEvent.doubleClick(screen.getByTestId(TestId.sidebar.sessionConversationId))
+    expect(document.querySelector('input')).toBeNull()
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     generationRuntimeStore.clear(session.id)

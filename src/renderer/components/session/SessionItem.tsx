@@ -25,6 +25,7 @@ import { navigateToSettings } from '@/modals/settings-navigation'
 import { showSessionArchiveUndo } from '@/presentation/session/session-archive-notification'
 import { confirmSessionDeletion } from '@/presentation/session/session-deletion-confirmation'
 import { router } from '@/router'
+import { copyToClipboard } from '@/packages/navigator'
 import { deleteSession, switchCurrentSession } from '@/stores/session/crud'
 import { useSessionActivity } from '@/stores/sessionActivityStore'
 import * as toastActions from '@/stores/toastActions'
@@ -389,6 +390,35 @@ function SessionItem(props: Props) {
       {!renaming && activity === 'idle' && switchShortcutDigit === undefined && (
         <Text span c="chatbox-tertiary" fz={11} className="shrink-0 tabular-nums group-hover/session-item:hidden">
           {formatSessionTime(session.createdAt)}
+        </Text>
+      )}
+
+      {/* Conversation cache key: the session id, sent to the engine as
+          lamina_conversation_id. Shown so a cache file on disk can be traced
+          back to a named chat. Selectable text; a click copies it. The pointer
+          handlers stop propagation so selecting or copying never starts a
+          rename, a drag, or a session switch. */}
+      {!renaming && (
+        <Text
+          span
+          data-testid={TestId.sidebar.sessionConversationId}
+          c="chatbox-tertiary"
+          fz={11}
+          title={session.id}
+          aria-label={t('Copy Conversation ID')}
+          className="shrink min-w-0 max-w-[45%] cursor-copy select-text truncate font-mono tabular-nums opacity-70 hover:opacity-100"
+          onPointerDown={(event) => event.stopPropagation()}
+          onMouseDown={(event) => event.stopPropagation()}
+          onDoubleClick={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            // Same helper and toast as the toolbar's "Copy Conversation ID"
+            // action, so the string is translated in every locale already.
+            event.stopPropagation()
+            copyToClipboard(session.id)
+            toastActions.add(t('copied to clipboard'), 2000)
+          }}
+        >
+          {session.id}
         </Text>
       )}
 

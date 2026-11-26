@@ -8,6 +8,7 @@ import type { CallChatCompletionOptions, ModelInterface } from './types'
 import { isDeepSeekWeakToolUse } from './utils/deepseek'
 import { createFetchWithProxy } from './utils/fetch-proxy'
 import { createOpenAIChatCompletionSseFetch } from './utils/openai-chat-sse-termination'
+import { withConversationId } from './utils/conversation-id'
 
 export interface OpenAICompatibleSettings {
   apiKey: string
@@ -57,18 +58,27 @@ export default abstract class OpenAICompatible extends AbstractAISDKModel implem
     return super.isSupportToolUse()
   }
 
-  protected getProvider() {
+  protected getProvider(callOptions?: CallChatCompletionOptions) {
     const fetch = this.options.customFetch || createFetchWithProxy(this.options.useProxy, this.dependencies)
     return createOpenAICompatible({
       name: this.name,
       apiKey: this.options.apiKey,
       baseURL: this.options.apiHost,
       fetch: createOpenAIChatCompletionSseFetch(fetch),
+      // Engines that cache a conversation (Lamina) key that cache by a stable
+      // id, not by the prompt: see utils/conversation-id.ts for the rules.
+      // The session id is already Wao's identity for a chat, so this adds no
+      // new state - it just stops the engine from having to invent one.
+      // Only calls that ARE the conversation continuing set conversationCacheKey;
+      // side tasks (compaction, naming, OCR) reuse the session id with another
+      // prompt and would replace the chat's snapshot.
+      transformRequestBody: (body) =>
+        withConversationId(body, callOptions?.conversationCacheKey ? callOptions.sessionId : undefined),
     })
   }
 
-  protected getChatModel() {
-    const provider = this.getProvider()
+  protected getChatModel(callOptions?: CallChatCompletionOptions) {
+    const provider = this.getProvider(callOptions)
     return wrapLanguageModel({
       model: provider.languageModel(this.options.model.modelId),
       middleware: extractReasoningMiddleware({ tagName: 'think' }),

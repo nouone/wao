@@ -112,6 +112,8 @@ export class BasicGenerationPreparation<TContext> implements GenerationPreparati
       memoryToolContext: tools.memoryToolContext,
       chatOptions: {
         sessionId: request.session.id,
+        // A real conversation turn (see CallChatCompletionOptions.conversationCacheKey).
+        conversationCacheKey: true,
         agentMode: false,
         signal: request.signal,
         providerOptions: request.providerOptions,

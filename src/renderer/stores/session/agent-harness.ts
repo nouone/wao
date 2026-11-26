@@ -488,6 +488,10 @@ export async function prepareAgentGenerationHarness(
 
   const chatOptions: ChatStreamOptions = {
     sessionId: session.id,
+    // This request IS the conversation: engines that cache per conversation
+    // (Lamina) may reuse the snapshot keyed by the session id. Side tasks that
+    // summarize or name this chat deliberately leave this off.
+    conversationCacheKey: true,
     agentMode: effectiveAgentMode === 'on',
     signal,
     providerOptions: disableClaudeThinkingForResume

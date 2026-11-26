@@ -108,6 +108,7 @@ export const TestId = {
     /** Hosts AutomationAdjacentAttr.sessionId. */
     sessionItem: 'session-item',
     sessionTitle: 'session-title',
+    sessionConversationId: 'session-conversation-id',
     sessionPin: 'session-pin',
     sessionArchive: 'session-archive',
     sessionSwitchHint: 'session-switch-hint',
