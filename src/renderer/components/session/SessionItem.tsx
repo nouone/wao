@@ -394,19 +394,20 @@ function SessionItem(props: Props) {
       )}
 
       {/* Conversation cache key: the session id, sent to the engine as
-          lamina_conversation_id. Shown so a cache file on disk can be traced
-          back to a named chat. Selectable text; a click copies it. The pointer
-          handlers stop propagation so selecting or copying never starts a
-          rename, a drag, or a session switch. */}
+          lamina_conversation_id. New chats get an 8-hex-char id (see
+          createConversationId); older chats keep their full-length ids, so
+          `truncate` still guards the row. Click copies the id — the exact
+          string the engine tracks. The pointer handlers stop propagation so
+          selecting or copying never starts a rename, a drag, or a session
+          switch. */}
       {!renaming && (
         <Text
           span
           data-testid={TestId.sidebar.sessionConversationId}
           c="chatbox-tertiary"
           fz={11}
-          title={session.id}
           aria-label={t('Copy Conversation ID')}
-          className="shrink min-w-0 max-w-[45%] cursor-copy select-text truncate font-mono tabular-nums opacity-70 hover:opacity-100"
+          className="shrink min-w-0 max-w-[45%] cursor-copy font-mono tabular-nums truncate opacity-70 hover:opacity-100"
           onPointerDown={(event) => event.stopPropagation()}
           onMouseDown={(event) => event.stopPropagation()}
           onDoubleClick={(event) => event.stopPropagation()}

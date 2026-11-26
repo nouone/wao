@@ -40,6 +40,18 @@ const settingsEffectsHost = {
   },
 }
 
+/**
+ * The conversation cache key: the session id shown in the sidebar, sent to
+ * the engine as lamina_conversation_id. Eight lowercase hex characters are
+ * readable next to a chat title and unique enough for any realistic number
+ * of chats (32 bits; a collision needs tens of thousands of chats). Old
+ * chats keep their full-length ids: ids are opaque strings everywhere, so
+ * both shapes coexist.
+ */
+export function createConversationId(): string {
+  return uuidv4().replace(/-/g, '').slice(0, 8)
+}
+
 const common: Omit<CreateRendererApplicationOptions, 'host'> = {
   authInfoStore,
   lastUsedModelStore,
@@ -49,7 +61,7 @@ const common: Omit<CreateRendererApplicationOptions, 'host'> = {
   settingsStorage,
   sessionEventLogger: getLogger('session-events'),
   session: {
-    createId: uuidv4,
+    createId: createConversationId,
     logger: getLogger('session-service'),
     folders: rendererSessionFolderStore,
     getCopilotName,

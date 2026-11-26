@@ -102,7 +102,8 @@ describe('SessionItem', () => {
   test('shows the conversation cache key next to the title and copies it without touching the row', async () => {
     // The id is what the engine names its per-chat cache snapshot with, so it
     // has to be readable from the list and copyable - but selecting or copying
-    // it must never rename, drag or switch the chat.
+    // it must never rename, drag or switch the chat. New ids are 8 hex
+    // characters end to end: the chip text, the copy and the wire field match.
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
     renderItem(false)
