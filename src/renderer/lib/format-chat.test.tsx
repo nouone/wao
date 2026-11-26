@@ -166,5 +166,5 @@ test('exports without vendor assets or third-party styling scripts', async () =>
   expect(html).not.toContain('chatboxai.app')
   expect(html).not.toContain('cdn.tailwindcss.com')
   expect(html).not.toContain('cdn.jsdelivr.net')
-  expect(html).toContain('Wao')
+  expect(html).toContain('Lumina Chat')
 })

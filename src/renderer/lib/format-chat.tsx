@@ -126,7 +126,7 @@ function renderHtmlDocument(sessionName: string, content: string, interactiveScr
         <hr />
         ${content}
         <hr />
-        <p>Exported with Wao · Based on open-source Chatbox</p>
+        <p>Exported with Lumina Chat · Based on open-source Chatbox</p>
     </div>
     ${interactiveScript}
 </body>

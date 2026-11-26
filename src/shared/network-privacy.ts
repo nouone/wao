@@ -22,7 +22,7 @@ export function isBlockedVendorUrl(input: string | URL): boolean {
 }
 
 export function assertAllowedNetworkUrl(input: string | URL): void {
-  if (isBlockedVendorUrl(input)) throw new Error('Vendor services and telemetry are disabled in Wao.')
+  if (isBlockedVendorUrl(input)) throw new Error('Vendor services and telemetry are disabled in Lumina Chat.')
 }
 
 /** Install before importing clients that capture global fetch. Provider requests pass through. */
@@ -32,7 +32,7 @@ export function installPrivateFetch(target: Pick<typeof globalThis, 'fetch'>): v
   target.fetch = (input, init) => {
     const url = typeof input === 'string' || input instanceof URL ? input : input.url
     if (isBlockedVendorUrl(url)) {
-      return Promise.reject(new Error('Vendor services and telemetry are disabled in Wao.'))
+      return Promise.reject(new Error('Vendor services and telemetry are disabled in Lumina Chat.'))
     }
     return original.call(target, input, init)
   }

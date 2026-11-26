@@ -194,7 +194,7 @@ export function describeError(error: unknown): { error: string; fix: string } {
   }
   if (/license|activate chatbox/i.test(msg)) {
     return {
-      error: 'The selected hosted service is unavailable in Wao',
+      error: 'The selected hosted service is unavailable in Lumina Chat',
       fix: 'Choose a model from your own configured provider.',
     }
   }

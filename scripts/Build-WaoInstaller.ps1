@@ -15,7 +15,7 @@ try {
     if ((Get-FileHash -LiteralPath $packed).Hash -ne (Get-FileHash -LiteralPath "assets/whisper/$name").Hash) { throw "Packaged dictation resource changed: $name" }
   }
   $version = (Get-Content release/app/package.json -Raw | ConvertFrom-Json).version
-  $installer = "release/build/Wao-$version-x64-Setup.exe"
+  $installer = "release/build/LuminaChat-$version-x64-Setup.exe"
   if (-not (Test-Path -LiteralPath $installer)) { throw 'Expected installer was not produced.' }
   $hash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
   "$hash  $(Split-Path -Leaf $installer)" | Set-Content release/build/SHA256SUMS.txt -Encoding ascii

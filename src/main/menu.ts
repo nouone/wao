@@ -78,17 +78,17 @@ export default class MenuBuilder {
 
   buildDarwinTemplate(): MenuItemConstructorOptions[] {
     const subMenuAbout: DarwinMenuItemConstructorOptions = {
-      label: 'Chatbox',
+      label: 'Lumina Chat',
       submenu: [
         {
-          label: 'About Wao',
+          label: 'About Lumina Chat',
           selector: 'orderFrontStandardAboutPanel:',
         },
         { type: 'separator' },
         { label: 'Services', submenu: [] },
         { type: 'separator' },
         {
-          label: 'Hide Chatbox',
+          label: 'Hide Lumina Chat',
           accelerator: 'Command+H',
           selector: 'hide:',
         },

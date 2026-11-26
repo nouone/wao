@@ -1,27 +1,27 @@
-# <img src="assets/icon.svg" alt="" width="40" height="40"> Wao
+# <img src="assets/icon.svg" alt="" width="40" height="40"> Lumina Chat
 
 **Bring your own AI endpoint. Use local voice and documents. Continue desktop chats on your phone.**
 
 **Need help? Click Help in the sidebar.** It opens a normal chat with the bundled setup guides attached, using your selected model. Ask about setup, dictation, documents, phone pairing or builds. Nothing is sent automatically. No keys, settings, logs or other chats are attached. The model cannot inspect your computer automatically. Create a new Help chat after updating to attach the latest guides.
 
-On your phone, Wao offers a hands-free **voice mode**: tap the orb, speak, the message is transcribed and sent, and the reply is read back sentence by sentence. You can interrupt by voice while it speaks, or say "stop". The iPhone keyboard microphone still works for dictating text, and completed replies have a **Read aloud** button. Voice mode needs the Tailscale (HTTPS) link; see [phone access](LOCAL-PHONE-ACCESS.md).
+On your phone, Lumina Chat offers a hands-free **voice mode**: tap the orb, speak, the message is transcribed and sent, and the reply is read back sentence by sentence. You can interrupt by voice while it speaks, or say "stop". The iPhone keyboard microphone still works for dictating text, and completed replies have a **Read aloud** button. Voice mode needs the Tailscale (HTTPS) link; see [phone access](LOCAL-PHONE-ACCESS.md).
 
 ## Windows downloads
 
-[![Windows Wao installer](https://img.shields.io/github/v/release/nouone/wao?label=latest%20release)](https://github.com/nouone/wao/releases/latest)
+[![Windows Lumina Chat installer](https://img.shields.io/github/v/release/nouone/wao?label=latest%20release)](https://github.com/nouone/wao/releases/latest)
 
-**Download:** [Wao for Windows x64](https://github.com/nouone/wao/releases/latest)
+**Download:** [Lumina Chat for Windows x64](https://github.com/nouone/wao/releases/latest)
 
 No spyware, no ads, just clean chat. Local LLMs first (Strata, Ollama, llama.cpp), local Whisper dictation included, phone/desktop chat sync over LAN or Tailscale.
 
 [Published installers](https://github.com/nouone/wao/releases) · [Windows test builds](https://github.com/nouone/wao/actions/workflows/windows.yml)
 
-For a test build, open a successful **Windows Wao installer** workflow run and download **Wao-Windows-x64** under Artifacts. Extract it and run its Setup EXE. Published Releases offer direct installer downloads without using Actions.
+For a test build, open a successful **Windows Lumina Chat installer** workflow run and download **LuminaChat-Windows-x64** under Artifacts. Extract it and run its Setup EXE. Published Releases offer direct installer downloads without using Actions.
 
 ## Install on Windows
 
 1. Open **Releases** in this fork's GitHub page and download the Setup EXE from the latest published release. Do not choose GitHub's source ZIP unless you intend to build.
-2. Run the installer, open Wao, and add your endpoint and Chat model under **Settings → Model Providers**.
+2. Run the installer, open Lumina Chat, and add your endpoint and Chat model under **Settings → Model Providers**.
 3. Select that model and start chatting. Click **Help** for the bundled setup guides.
 
 The installer includes local English Whisper dictation. You do not need Node, Python or a compiler to use it. Kokoro read aloud and document embeddings are optional separate services; follow the guides below if you want them. Installers from this workflow are unsigned; SHA256SUMS.txt accompanies each build.
@@ -46,7 +46,7 @@ For phone setup, apply LAN/Tailscale addresses using **Apply address below both 
 
 **Voice mode needs the Tailscale (HTTPS) link.** Browsers only allow the microphone on localhost or HTTPS pages, so the plain `http://<LAN-IP>` page is text chat only; iPhone Safari has no override flag. This is not a speed problem: on the same network Tailscale discovers the phone's LAN address and sends traffic directly (measured ~3 ms). The first requests after a reboot may hairpin out to the router's WAN address and back until discovery settles; after that the path stays fully local. Verify with `tailscale ping <phone-tailscale-ip>` — lines reading `via 10.x.x.x` are direct.
 
-Before publishing, test an existing chat and a new chat, voice playback, dictation, document retrieval, and a phone message saved back to Desktop. Keep upstream GPL credits and the license. The included Windows Wao installer workflow builds an EXE on demand or for `wao-v*` tags. Tagged builds create a draft GitHub Release for testing before publication. See [release instructions](WINDOWS-RELEASE.md).
+Before publishing, test an existing chat and a new chat, voice playback, dictation, document retrieval, and a phone message saved back to Desktop. Keep upstream GPL credits and the license. The included Windows Lumina Chat installer workflow builds an EXE on demand or for `wao-v*` tags. Tagged builds create a draft GitHub Release for testing before publication. See [release instructions](WINDOWS-RELEASE.md).
 
 An independent, streamlined derivative of [Chatbox](https://github.com/chatboxai/chatbox), focused on custom AI endpoints and local voice. Distributed under GPLv3; upstream authors and license are retained.
 
@@ -60,20 +60,20 @@ An independent, streamlined derivative of [Chatbox](https://github.com/chatboxai
 - **Interface improvements:** independent sidebar font size, theme-aware chat icons, warm theme surfaces, the smiley application icon, nearby Send arrow, and streaming scroll-follow fixes.
 - **No account or upgrade interface:** vendor welcome cards, account/login screens, upgrade/quota prompts, download banners, and the hosted Chatbox provider are removed. There is no restore toggle or environment switch. Custom providers remain available.
 - **Analytics removed:** Sentry reporting, Google Analytics, and Plausible scripts/transports are removed. Vendor update checks, remote configuration, promotional notifications and hosted preview requests are also removed. See the audit below.
-- **Help chat:** the sidebar Help button opens a normal persisted conversation with the bundled README and setup guides included as context, using your configured chat model. It sends no question automatically and attaches no keys, settings, logs or other chats. About retains Wao features and upstream GPL credits.
+- **Help chat:** the sidebar Help button opens a normal persisted conversation with the bundled README and setup guides included as context, using your configured chat model. It sends no question automatically and attaches no keys, settings, logs or other chats. About retains Lumina Chat features and upstream GPL credits.
 - **No bundled skills or MCP presets:** bundled skill seeding/discovery and vendor MCP presets are removed. Old bundled skill snapshots are ignored. Your own skills and custom MCP server configuration remain available.
 - **Local web/API access:** opt-in localhost listener (default port 8085), authenticated HTTP, WebSocket sync and a standalone browser chat page that continues the desktop conversations, with voice mode on HTTPS origins. Submissions use the desktop Send controller and existing saved conversations. See [LOCAL-CHAT-API.md](LOCAL-CHAT-API.md).
-- **Windows packaging:** a separate Wao installer identity (`Wao-<version>-x64-Setup.exe`, profile in `%APPDATA%\Wao`), explicit package registry, local production dependency verification, and Wao Contributors publisher metadata, without private signing credentials. This metadata does not make an unsigned installer signed.
+- **Windows packaging:** a separate Lumina Chat installer identity (`LuminaChat-<version>-x64-Setup.exe`, profile in `%APPDATA%\Wao`), explicit package registry, local production dependency verification, and Lumina Chat Contributors publisher metadata, without private signing credentials. This metadata does not make an unsigned installer signed.
 
 ## Found and removed: privacy audit
 
-The following behaviors were found in the inherited source and removed or disabled in Wao. This records observed code behavior; it does not infer anyone's motives.
+The following behaviors were found in the inherited source and removed or disabled in Lumina Chat. This records observed code behavior; it does not infer anyone's motives.
 
-| Found in inherited source | Removed or replaced in Wao |
+| Found in inherited source | Removed or replaced in Lumina Chat |
 | --- | --- |
 | Sentry error reports, including a `sentry.midway.run` destination; Google Analytics and Plausible tracking | Reporting initialization, scripts and event transports disabled. The old enabled-looking Error Reporting switch is replaced by **Error reporting removed**. Old saved consent cannot re-enable reporting. |
 | Renderer update POST to `/chatbox_need_update/<version>` containing a device UUID, OS and reporting preference | Request removed; installed version is read locally. |
-| Desktop update feed checks at startup and hourly, trying multiple Chatbox API domains | No feed checks, automatic downloads or upstream installer execution. Wao updates manually from source or its own installer. |
+| Desktop update feed checks at startup and hourly, trying multiple Chatbox API domains | No feed checks, automatic downloads or upstream installer execution. Lumina Chat updates manually from source or its own installer. |
 | Startup `/api/remote_config/setting_chatboxai_first` requests | Local defaults replace vendor configuration. |
 | `/api/dialog_config` and `/api/client_notifications/next` requests, including device/language/version or displayed-notification history | Remote promotional dialogs and notifications no longer mount or fetch. |
 | Free-trial ads attached to custom-provider errors and vendor quota purchase cards | Removed. Errors explain the provider failure without upgrade or purchase actions. |
@@ -82,8 +82,8 @@ The following behaviors were found in the inherited source and removed or disabl
 | Automatic `models.dev` catalog downloads at startup or on unknown model IDs | Bundled snapshot and local cache only. Fetching models from your configured provider is preserved. |
 | Generated artifact HTML posted to `artifact-preview.chatboxai.app` in an iframe | Sandboxed local `srcDoc` preview; no vendor frame receives the code. |
 | Vendor CORS proxy for web provider requests | Direct provider requests. Browser builds need provider CORS support; Desktop keeps its direct transport. |
-| Remote vendor icon assets and third-party styling scripts in exported HTML | Local inline styling and plain Wao attribution. Message content itself can still contain external links/images. |
-| Account/login/upgrade welcomes, hosted provider selector, restore toggle, RedNote, WeChat, vendor marketing links and upstream update controls | Wao features, local help, manual-update information, and upstream GitHub/GPL credits. |
+| Remote vendor icon assets and third-party styling scripts in exported HTML | Local inline styling and plain Lumina Chat attribution. Message content itself can still contain external links/images. |
+| Account/login/upgrade welcomes, hosted provider selector, restore toggle, RedNote, WeChat, vendor marketing links and upstream update controls | Lumina Chat features, local help, manual-update information, and upstream GitHub/GPL credits. |
 | Dormant obfuscated vendor-origin redirect code; vendor referrer attribution headers | Redirect code and app-vendor HTTP-Referer headers removed. |
 
 A shared fetch guard and Electron session request guard additionally block the known vendor/telemetry domains and their subdomains. There is no setting to restore vendor contacts. This is application behavior and source/test verification, not an operating-system firewall or a packet-capture certification.
@@ -114,7 +114,7 @@ pnpm run dev
 4. Configure Tavily if you want web search, and test a search-enabled reply.
 5. Change sidebar text size and theme. Confirm there is no Account navigation, restore toggle, hosted Chatbox provider, welcome login/upgrade card, or enabled-looking Error Reporting switch.
 6. Open Help: a new chat should contain the local docs as context and keep your selected model. Ask a question; normal provider charges/availability apply. About remains local and retains source/license credits.
-7. In Model Providers confirm Grok (xAI), then LM Studio, appear first and Xiaomi/MiMo is absent. Image Creator uses an image-capable model at a configured endpoint; set a custom model type to Image, then choose it under Default Models / Image creation. It does not run an image engine inside Wao.
+7. In Model Providers confirm Grok (xAI), then LM Studio, appear first and Xiaomi/MiMo is absent. Image Creator uses an image-capable model at a configured endpoint; set a custom model type to Image, then choose it under Default Models / Image creation. It does not run an image engine inside Lumina Chat.
 8. Enable the Local chat API under Settings → Advanced. Generate/copy its token and open the browser there. Follow [LOCAL-CHAT-API.md](LOCAL-CHAT-API.md) for testing. Live Strata and browser socket validation must be done on your normal desktop session; handler tests here do not certify that live round trip.
 
 ## Build a Windows installer
@@ -126,7 +126,7 @@ pnpm run build
 pnpm exec electron-builder --config electron-builder.wao.yml --win nsis --x64 --publish never
 ```
 
-Keep the tracked `.npmrc` registry setting. Building does not update an already installed app: install the generated Wao installer from `release/build`. Export/import chats if the Wao profile (`%APPDATA%\Wao`) is empty. See [build notes](LOCAL-CUSTOM-BUILD.md) for details. Source checks/builds do not verify microphone hardware, a running speech server, or installer behavior on your machine.
+Keep the tracked `.npmrc` registry setting. Building does not update an already installed app: install the generated Lumina Chat installer from `release/build`. Export/import chats if the Lumina Chat profile (`%APPDATA%\Wao`) is empty. See [build notes](LOCAL-CUSTOM-BUILD.md) for details. Source checks/builds do not verify microphone hardware, a running speech server, or installer behavior on your machine.
 
 ## Fork and upstream changes
 

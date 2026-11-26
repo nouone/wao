@@ -135,8 +135,8 @@ export function RouteComponent() {
         <SettingRow
           id="error-reporting"
           label="Error reporting removed"
-          description="Wao does not upload diagnostic logs, crash reports, or analytics. Export Logs saves a local file only."
-          control={<Text size="sm">Disabled in Wao</Text>}
+          description="Lumina Chat does not upload diagnostic logs, crash reports, or analytics. Export Logs saves a local file only."
+          control={<Text size="sm">Disabled in Lumina Chat</Text>}
         />
       </SettingsSection>
     </SettingsPage>

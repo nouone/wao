@@ -85,7 +85,7 @@ const GROUPS: { title: string; hint: string; slotIds: ModelRigSlotId[] }[] = [
   },
   {
     title: 'Image creation',
-    hint: 'Use an image-capable model at your configured provider endpoint; no image engine runs inside Wao.',
+    hint: 'Use an image-capable model at your configured provider endpoint; no image engine runs inside Lumina Chat.',
     slotIds: ['image'],
   },
 ]

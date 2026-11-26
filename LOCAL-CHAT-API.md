@@ -1,6 +1,6 @@
 # Local desktop chat API and browser access
 
-This is an optional local interface to the running Wao desktop application. It is **disabled by default**, binds **127.0.0.1 by default** (optional explicit LAN listener and Tailscale Serve access are configured in Settings), and uses a bearer token. It is not a separate Strata client or chat engine. Keep Desktop running and unlock/approve any normal desktop prompts there.
+This is an optional local interface to the running Lumina Chat desktop application. It is **disabled by default**, binds **127.0.0.1 by default** (optional explicit LAN listener and Tailscale Serve access are configured in Settings), and uses a bearer token. It is not a separate Strata client or chat engine. Keep Desktop running and unlock/approve any normal desktop prompts there.
 
 ## Enable in Settings (recommended)
 
@@ -15,7 +15,7 @@ $env:WAO_API_TOKEN = Get-Clipboard
 .\scripts\Test-LocalChatApi.ps1 -BaseUrl 'http://127.0.0.1:8087'
 ```
 
-Use the port shown in Settings. The script checks Wao's identity before sending credentials, bypasses proxies for local requests, and prints the server's actual error response.
+Use the port shown in Settings. The script checks Lumina Chat's identity before sending credentials, bypasses proxies for local requests, and prints the server's actual error response.
 
 ## Optional environment launch on port 8085
 
@@ -39,7 +39,7 @@ If `WAO_API_TOKEN` is omitted, enabling the API generates/reuses `local-api-toke
 
 Open **http://127.0.0.1:8085/**. Enter the local API token, connect, select an existing conversation, and send a question. The page has no external scripts, keeps manually entered tokens in memory, or uses an HttpOnly browser cookie when you choose Remember this device, and uses the same API and WebSocket as other clients. It shows the latest window of history and a **Load older** control walks back through older pages in the page itself; raw clients can paginate over HTTP. Create new conversations and manage settings/files/approvals in Desktop.
 
-Use the actual port shown in Settings: if your embedding server/llama-ui already uses 8085, choose **8087** for Wao and open **http://127.0.0.1:8087/**. These are separate services. The browser is a minimal Wao-styled continuation view: existing chats, live replies, and the Send arrow. There is no independent model picker or tool setup. It uses the selected desktop conversation's settings and uses the shared desktop Markdown parser for formatted replies; document and knowledge management remain in Desktop, and the page attaches **photos** through the camera button (PNG/JPEG/WebP/GIF up to 6 MB, stored on Desktop like a locally attached image and shown as `[image]` in the web transcript). Streaming follows the bottom when you are already near it and leaves you in place when you scroll upward. On HTTPS origins (localhost or the Tailscale address) the page also offers hands-free voice mode: microphone capture transcribed on Desktop, sentence-pipelined reply audio and spoken stop/go-on commands; see [phone access](LOCAL-PHONE-ACCESS.md).
+Use the actual port shown in Settings: if your embedding server/llama-ui already uses 8085, choose **8087** for Lumina Chat and open **http://127.0.0.1:8087/**. These are separate services. The browser is a minimal Lumina Chat-styled continuation view: existing chats, live replies, and the Send arrow. There is no independent model picker or tool setup. It uses the selected desktop conversation's settings and uses the shared desktop Markdown parser for formatted replies; document and knowledge management remain in Desktop, and the page attaches **photos** through the camera button (PNG/JPEG/WebP/GIF up to 6 MB, stored on Desktop like a locally attached image and shown as `[image]` in the web transcript). Streaming follows the bottom when you are already near it and leaves you in place when you scroll upward. On HTTPS origins (localhost or the Tailscale address) the page also offers hands-free voice mode: microphone capture transcribed on Desktop, sentence-pipelined reply audio and spoken stop/go-on commands; see [phone access](LOCAL-PHONE-ACCESS.md).
 
 ## First proof using your existing Strata conversation
 

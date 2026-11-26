@@ -24,21 +24,21 @@ function RouteComponent() {
             <Image h={100} w={100} mah={'20vw'} maw={'20vw'} src={iconPNG} />
             <Stack flex={1} gap="xxs">
               <Flex justify="space-between" align="center" wrap="wrap" gap={isSmallScreen ? 'xs' : 'sm'} rowGap="xs">
-                <Title order={5} lh={1.5} lineClamp={1} title={`Wao v${version.version}`}>
-                  Wao {/\d/.test(version.version) ? `(v${version.version})` : ''}
+                <Title order={5} lh={1.5} lineClamp={1} title={`Lumina Chat v${version.version}`}>
+                  Lumina Chat {/\d/.test(version.version) ? `(v${version.version})` : ''}
                 </Title>
 
-                <Text size="sm">Manual Wao updates only</Text>
+                <Text size="sm">Manual Lumina Chat updates only</Text>
               </Flex>
               <Text>Custom AI endpoints, local voice, and a streamlined interface.</Text>
               <Text c="chatbox-tertiary">
-                Independent community edition based on Chatbox. Wao build #{BUILD_INFO.n} ({BUILD_INFO.at}, {BUILD_INFO.hash}).
+                Independent community edition based on Chatbox. Lumina Chat build #{BUILD_INFO.n} ({BUILD_INFO.at}, {BUILD_INFO.hash}).
               </Text>
             </Stack>
           </Flex>
 
           <Stack gap="sm">
-            <Title order={3}>Included in Wao</Title>
+            <Title order={3}>Included in Lumina Chat</Title>
             <Text>Local Whisper microphone transcription, a recording meter, and a nearby Send button.</Text>
             <Text>
               Kokoro read-aloud with automatic reply reading, voice selection, adjustable speed, and speech-friendly
@@ -77,7 +77,7 @@ function RouteComponent() {
             </Text>
             <Divider />
             <Text>
-              Wao is an independent derivative of Chatbox by its upstream contributors, distributed under
+              Lumina Chat is an independent derivative of Chatbox by its upstream contributors, distributed under
               GPLv3.
             </Text>
             <Anchor href="https://github.com/chatboxai/chatbox" target="_blank">

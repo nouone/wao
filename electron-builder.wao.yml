@@ -1,9 +1,8 @@
 extends: ./electron-builder.yml
-productName: Wao
-# Wao's own identity: the NSIS install GUID derives from this, so the
-# installer no longer matches the old Chatbox Lite registry entry and its
-# Programs\Chatbox Lite path. The profile was already migrated to
-# %APPDATA%\Wao by the main-process bootstrap; this finishes the rename.
+productName: Lumina Chat
+# Display identity is Lumina Chat; the appId, profile directory and repo stay
+# "wao" so the NSIS install GUID, the %APPDATA%\Wao profile and existing
+# pairing/API wiring keep working across the rename.
 appId: local.wao
 publish: null
 extraMetadata:
@@ -13,8 +12,8 @@ extraMetadata:
     url: https://github.com/nouone
 compression: store
 nsis:
-  shortcutName: Wao
-  uninstallDisplayName: Wao
+  shortcutName: Lumina Chat
+  uninstallDisplayName: Lumina Chat
 
 win:
-  artifactName: Wao-${version}-${arch}-Setup.${ext}
+  artifactName: LuminaChat-${version}-${arch}-Setup.${ext}

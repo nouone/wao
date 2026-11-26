@@ -13,7 +13,7 @@ export function SpeechSettings() {
   const { setSettings, ...settings } = useSettingsStore((state) => state)
   const playbackId = `voice-test-${readAloudId}`
   const sample = useMemo(
-    () => createMessage('assistant', 'Hello. This is your selected voice and speaking speed in Wao.'),
+    () => createMessage('assistant', 'Hello. This is your selected voice and speaking speed in Lumina Chat.'),
     []
   )
   const { active, loading, startReading } = useReplySpeech(sample, playbackId)

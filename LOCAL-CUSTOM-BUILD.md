@@ -1,8 +1,8 @@
-# Wao build and installation
+# Lumina Chat build and installation
 
 Based on upstream chatboxai/chatbox commit d17455c5ca8fd3ff44385c6d4d2118599e4c970f. The public history is a single consolidated v1.0.0 commit; the full pre-derivative history lives on the `archive/chatbox-lite-history` branch.
 
-Wao is a desktop Electron app plus an optional local web/API front end. Included: custom-provider Strata thinking controls; provider-reported engine speed; Kokoro read-aloud, auto-read and playback speed; local whisper.cpp microphone dictation with level bars; phone voice mode over the local API; a standalone browser continuation page with WebSocket sync; independent sidebar font size; warm theme surfaces; and removal of Sentry, Google Analytics and Plausible transports, vendor update checks, remote configuration, promotional dialogs and hosted previews.
+Lumina Chat is a desktop Electron app plus an optional local web/API front end. Included: custom-provider Strata thinking controls; provider-reported engine speed; Kokoro read-aloud, auto-read and playback speed; local whisper.cpp microphone dictation with level bars; phone voice mode over the local API; a standalone browser continuation page with WebSocket sync; independent sidebar font size; warm theme surfaces; and removal of Sentry, Google Analytics and Plausible transports, vendor update checks, remote configuration, promotional dialogs and hosted previews.
 
 ## Requirements and source build
 
@@ -21,17 +21,17 @@ For development set `$env:DEV_PORT = '5173'` and run `pnpm run dev`. Build the b
 
 ## Microphone assets
 
-Run `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-local-speech.ps1`. It downloads whisper.cpp and the English base model into `assets/whisper`; these binary assets are intentionally excluded from Git. Packaging embeds whatever is in `assets/whisper` at build time, and the installed app reads its own `resources/assets/whisper`, so prepare the assets in the same checkout that builds the installer. Kokoro must run separately: set `AUDIO_TTS_OPENAI_API_BASE_URL=http://localhost:8880` before starting Wao, or use its speech settings (see LOCAL-SERVICES.md).
+Run `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-local-speech.ps1`. It downloads whisper.cpp and the English base model into `assets/whisper`; these binary assets are intentionally excluded from Git. Packaging embeds whatever is in `assets/whisper` at build time, and the installed app reads its own `resources/assets/whisper`, so prepare the assets in the same checkout that builds the installer. Kokoro must run separately: set `AUDIO_TTS_OPENAI_API_BASE_URL=http://localhost:8880` before starting Lumina Chat, or use its speech settings (see LOCAL-SERVICES.md).
 
 ## Packaging
 
-Use `electron-builder.wao.yml` for the Wao application identity (`appId local.wao`, product name Wao, artifact `Wao-<version>-x64-Setup.exe`, publisher "Wao Contributors"). After `pnpm run build`:
+Use `electron-builder.wao.yml` for the Lumina Chat application identity (`appId local.wao`, product name Lumina Chat, artifact `LuminaChat-<version>-x64-Setup.exe`, publisher "Lumina Chat Contributors"). After `pnpm run build`:
 
 ```powershell
 pnpm exec electron-builder --config electron-builder.wao.yml --win nsis --x64 --publish never
 ```
 
-The installer is unsigned; `SHA256SUMS.txt` accompanies scripted builds. The NSIS install GUID derives from the appId, so Wao has its own install path and uninstall entry. The app profile is `%APPDATA%\Wao`, established by the main-process bootstrap before any store loads. Export your chats from an older app and import them if the Wao profile is empty.
+The installer is unsigned; `SHA256SUMS.txt` accompanies scripted builds. The NSIS install GUID derives from the appId, so Lumina Chat has its own install path and uninstall entry. The app profile is `%APPDATA%\Wao`, established by the main-process bootstrap before any store loads. Export your chats from an older app and import them if the Lumina Chat profile is empty.
 
 The tracked root `.npmrc` includes `registry=https://registry.npmjs.org/`. The beforePack hook requires an explicit default registry to install production dependencies in `release/app`; a user/global npm setting alone does not satisfy that hook. Keep this line in the repository. If you intentionally use another package registry, replace the value with that approved registry URL.
 
@@ -43,7 +43,7 @@ The app icon is the gray smiley (`assets/icon.svg`); SVG, PNG and ICO exports us
 
 ## Account and upgrade screens removed
 
-Account/login/upgrade welcomes, hosted Chatbox provider selection and promotional banners are removed permanently. There is no environment variable or restore toggle. Old account URLs lead to custom-provider setup and the guide URL leads to local Help/About. Vendor account services are unavailable; Wao does not unlock paid features.
+Account/login/upgrade welcomes, hosted Chatbox provider selection and promotional banners are removed permanently. There is no environment variable or restore toggle. Old account URLs lead to custom-provider setup and the guide URL leads to local Help/About. Vendor account services are unavailable; Lumina Chat does not unlock paid features.
 
 ## Voice pipeline notes
 

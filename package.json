@@ -1,6 +1,6 @@
 {
   "name": "wao",
-  "productName": "wao",
+  "productName": "Lumina Chat",
   "version": "1.0.0",
   "engines": {
     "node": ">=22.13.0 <23.0.0",

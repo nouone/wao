@@ -109,7 +109,7 @@ async function getAuthenticatedAfetch() {
 
 // const RELEASE_ORIGIN = 'https://releases.chatboxai.app'
 export function getAPIOrigin(): string {
-  throw new Error('Vendor services are disabled in Wao. Use a configured AI endpoint.')
+  throw new Error('Vendor services are disabled in Lumina Chat. Use a configured AI endpoint.')
 }
 
 export function getChatboxOrigin() {

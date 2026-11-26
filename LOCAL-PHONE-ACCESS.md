@@ -1,17 +1,17 @@
 # Continue a desktop chat on your phone
 
-Wao must remain open on your desktop. Your phone can continue existing conversations or start one with New chat. Model configuration, files, knowledge, tools and approvals stay on Desktop. The browser uses the same Send controller and saved chats. On the Tailscale page you also get hands-free **voice mode** (see below); the plain LAN page is text chat.
+Lumina Chat must remain open on your desktop. Your phone can continue existing conversations or start one with New chat. Model configuration, files, knowledge, tools and approvals stay on Desktop. The browser uses the same Send controller and saved chats. On the Tailscale page you also get hands-free **voice mode** (see below); the plain LAN page is text chat.
 
 ## Desktop setup
 
 1. Open Settings → Advanced → Local chat API. Enable it. Use port **8087**, or another available port (8085 is the default; 8086 serves the Docker embeddings container). A secure API token is generated automatically.
-2. For home-network access, enter your desktop's **static private IPv4 address** in Static LAN IP and click Apply address. This must be an IP actually assigned to the PC, such as 192.168.1.100. Prefer a router DHCP reservation so it remains stable. Leaving the field empty keeps LAN access off. Wao binds that address explicitly in addition to localhost; it does not bind all interfaces.
+2. For home-network access, enter your desktop's **static private IPv4 address** in Static LAN IP and click Apply address. This must be an IP actually assigned to the PC, such as 192.168.1.100. Prefer a router DHCP reservation so it remains stable. Leaving the field empty keeps LAN access off. Lumina Chat binds that address explicitly in addition to localhost; it does not bind all interfaces.
 3. For access from outside your home, use Tailscale Serve as below. Paste its HTTPS address into Tailscale HTTPS address and click Apply address. The app never starts Serve or changes Tailscale itself.
 4. The settings page automatically displays QR codes for the configured addresses: **Local network** and **Tailscale — home or away**. The links are shown there too. Refresh phone QR codes replaces the outstanding one-use codes.
 
 ## Tailscale setup
 
-Connect Tailscale on both devices. With Wao listening on 8087, run in PowerShell on the desktop:
+Connect Tailscale on both devices. With Lumina Chat listening on 8087, run in PowerShell on the desktop:
 
 ```powershell
 tailscale serve --bg --https=8444 http://127.0.0.1:8087
@@ -22,21 +22,21 @@ $phoneAddress | Set-Clipboard
 Write-Host $phoneAddress
 ```
 
-If your Wao port differs, use that backend port. If Serve already uses HTTPS port 8444 for another application, choose a different unused Serve HTTPS port. This command adds/updates that Serve listener; it is not needed for plain LAN access. Follow Tailscale's HTTPS setup prompt if your tailnet has not enabled HTTPS yet. Paste the resulting address into Wao's Tailscale HTTPS address field. Use Serve, not public Funnel; Wao rejects Funnel-marked requests. The Serve configuration persists across reboots; `tailscale serve status` shows it.
+If your Lumina Chat port differs, use that backend port. If Serve already uses HTTPS port 8444 for another application, choose a different unused Serve HTTPS port. This command adds/updates that Serve listener; it is not needed for plain LAN access. Follow Tailscale's HTTPS setup prompt if your tailnet has not enabled HTTPS yet. Paste the resulting address into Lumina Chat's Tailscale HTTPS address field. Use Serve, not public Funnel; Lumina Chat rejects Funnel-marked requests. The Serve configuration persists across reboots; `tailscale serve status` shows it.
 
-Wao allows only the exact saved Tailscale host and origin. It supports HTTPS/WSS through Serve, which preserves the incoming Host header. Requests do not gain access from Tailscale identity headers alone: browser pairing or the API token is still required.
+Lumina Chat allows only the exact saved Tailscale host and origin. It supports HTTPS/WSS through Serve, which preserves the incoming Host header. Requests do not gain access from Tailscale identity headers alone: browser pairing or the API token is still required.
 
 ## Pair the phone
 
 Scan the desired QR code using the phone's camera. On the phone, tap **Pair with Desktop**. Leave **Remember this device for 30 days** checked if you want to reconnect without a key. Uncheck it for a browser-session cookie with a 12-hour server-side maximum. The one-use pairing code expires after five minutes and is removed from the browser URL immediately; it is not the desktop API key.
 
-Select a conversation and continue it. On the same LAN, use the Local network QR. At home or away, use Tailscale while it is connected on both devices. The Tailscale link uses HTTPS; the plain LAN link uses HTTP and is intended for your trusted local network. **Microphone access follows the browser's secure-context rule: voice mode only works on the HTTPS (Tailscale) page or on localhost; the HTTP LAN page is text chat only** (iPhone Safari offers no insecure-origin override). On the same network this costs nothing: Tailscale discovers the phone's LAN address and routes directly (measured ~3 ms on a home LAN). Right after a reboot, the first requests may take a NAT hairpin through the router's WAN address until discovery settles; confirm the path with `tailscale ping <phone-tailscale-ip>` — `via 10.x.x.x` (or another on-LAN address) means direct, `via DERP(...)` means relayed through Tailscale servers. Windows Firewall may need to permit the chosen application/port on your private network; Wao does not change firewall rules automatically.
+Select a conversation and continue it. On the same LAN, use the Local network QR. At home or away, use Tailscale while it is connected on both devices. The Tailscale link uses HTTPS; the plain LAN link uses HTTP and is intended for your trusted local network. **Microphone access follows the browser's secure-context rule: voice mode only works on the HTTPS (Tailscale) page or on localhost; the HTTP LAN page is text chat only** (iPhone Safari offers no insecure-origin override). On the same network this costs nothing: Tailscale discovers the phone's LAN address and routes directly (measured ~3 ms on a home LAN). Right after a reboot, the first requests may take a NAT hairpin through the router's WAN address until discovery settles; confirm the path with `tailscale ping <phone-tailscale-ip>` — `via 10.x.x.x` (or another on-LAN address) means direct, `via DERP(...)` means relayed through Tailscale servers. Windows Firewall may need to permit the chosen application/port on your private network; Lumina Chat does not change firewall rules automatically.
 
 ## Voice mode (Tailscale page)
 
 Tap the orb to start voice mode; the microphone arms and the orb pulses. Speak your sentence — the turn closes automatically on silence, Desktop transcribes it with Whisper and sends it, and the reply is read back sentence by sentence as it streams, so speech starts while the model is still writing.
 
-- **Interrupt:** with *Interrupt me while speaking* on (default), speak while Wao is talking and it stops and listens. Say **stop** (or variants like "stop talking") to cancel playback without sending; say **go on** or "continue" to resume the remaining sentences. With the toggle off, tap the orb to interrupt.
+- **Interrupt:** with *Interrupt me while speaking* on (default), speak while Lumina Chat is talking and it stops and listens. Say **stop** (or variants like "stop talking") to cancel playback without sending; say **go on** or "continue" to resume the remaining sentences. With the toggle off, tap the orb to interrupt.
 - **Blocked autoplay:** if Safari prepares the audio but does not start playing it, the status line reads "Tap the orb to start speaking" — tap the orb once and playback resumes; the orb stays the interrupt control while speaking. The voice-mode audio element carries no player controls, so nothing overlaps the Voice Settings bar.
 - **Streaming capture:** in voice mode the phone page is a dumb microphone pipe — raw audio streams continuously to Desktop over the authenticated `/api/voice/stream` WebSocket, and Desktop does the listening-detection and transcription (parakeet via sherpa-onnx, started on demand). This is why the first words are no longer clipped and quiet speech is picked up: the browser stopped deciding when you started or stopped talking. If the streaming engine is not configured on Desktop, the page shows "Voice: local mode" and falls back to the older browser-side detection.
 - **Voice Settings** (bottom bar): the thinking level for voice turns and the interrupt toggle are chosen there and remembered on the device. "Turn responsiveness" (quick/normal/patient) retunes the desktop endpointer live. Voice replies are styled for speaking by a short instruction that is sent **once per conversation**, not with every prompt; compaction re-sends it if it ever scrolls out.
@@ -54,7 +54,7 @@ The phone page now carries the desktop composer's full control set. While a repl
 - **Generate new token** in Desktop invalidates old API tokens, all remembered browser credentials and outstanding QR codes, and disconnects existing browser streams. New QR codes appear automatically when an address is configured.
 - Disable the API to close both listeners. Clear the Static LAN IP and apply to disable only the LAN listener. Tailscale Serve configuration remains under your control; to stop the example Serve listener, run `tailscale serve --https=8444 off`.
 
-Browser credentials are signed, expire server-side and are stored in HttpOnly, SameSite cookies; HTTPS connections also use Secure cookies. No primary API token is stored in phone localStorage or included in the QR. Remembered credentials survive Wao restarts while the same API token is retained. Explicit `WAO_API_*` environment variables still override saved settings at launch; clear those old test variables when using the Settings controls.
+Browser credentials are signed, expire server-side and are stored in HttpOnly, SameSite cookies; HTTPS connections also use Secure cookies. No primary API token is stored in phone localStorage or included in the QR. Remembered credentials survive Lumina Chat restarts while the same API token is retained. Explicit `WAO_API_*` environment variables still override saved settings at launch; clear those old test variables when using the Settings controls.
 
 ## Scope of verification
 
@@ -68,11 +68,11 @@ The browser retries ordinary connection loss using remembered pairing. If pairin
 
 ## Text dictation and Read aloud
 
-Prefer the keyboard microphone on the iPhone to dictate into the message box, then review and Send. Wao does not add a second recorder or upload keyboard dictation audio itself; keyboard dictation follows your iPhone settings. Voice mode above is the separate hands-free path.
+Prefer the keyboard microphone on the iPhone to dictate into the message box, then review and Send. Lumina Chat does not add a second recorder or upload keyboard dictation audio itself; keyboard dictation follows your iPhone settings. Voice mode above is the separate hands-free path.
 
 The **camera button** beside the message box attaches a photo to the next send: take one or pick from the library (PNG/JPEG/WebP/GIF, up to 6 MB). You can also **paste** a copied image (or a screenshot crop) straight into the message box - long-press, Paste, done; no permission prompt. The photo is stored on Desktop like a locally attached image, reaches the vision model the same way, and appears in the web transcript as `[image]` after the first refresh (the thumbnail stays visible until then). Text and photo can be sent together or the photo alone. Photos copied as HEIC are not accepted by browsers - use the camera button or re-copy as needed. Voice mode has no camera; attach photos in the typed composer.
 
-Completed assistant replies have a **Read aloud** button. Enable Read aloud in Desktop Default Models and start your configured Kokoro/OpenAI-compatible speech service. The phone requests audio through the authenticated Wao server; the speech URL, model, voice, speed and API key stay on Desktop. The same Desktop speech text normalization is used. No separate chat client or speech-provider configuration is required on the phone.
+Completed assistant replies have a **Read aloud** button. Enable Read aloud in Desktop Default Models and start your configured Kokoro/OpenAI-compatible speech service. The phone requests audio through the authenticated Lumina Chat server; the speech URL, model, voice, speed and API key stay on Desktop. The same Desktop speech text normalization is used. No separate chat client or speech-provider configuration is required on the phone.
 
 If Safari does not start playback after preparation, tap Play on that reply's audio controls. Stop reading cancels/releases playback, and changing chats or forgetting the device releases its audio. Web-originated replies suppress Desktop auto-read even when that chat is visible and Desktop's auto-read toggle is On. Normal Desktop sends retain their auto-read behavior. This does not stop speech that was already playing from a separate Desktop action.
 

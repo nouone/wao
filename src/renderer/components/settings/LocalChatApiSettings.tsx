@@ -83,7 +83,7 @@ export function LocalChatApiSettings() {
   return (
     <SettingsSection
       title="Local chat API"
-      description="Continue your desktop chats in a browser. Wao must remain open. The listener stays on this computer; optional Tailscale Serve access uses HTTPS and browser pairing."
+      description="Continue your desktop chats in a browser. Lumina Chat must remain open. The listener stays on this computer; optional Tailscale Serve access uses HTTPS and browser pairing."
     >
       <SettingSwitchRow
         id="local-chat-api"

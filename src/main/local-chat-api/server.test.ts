@@ -301,7 +301,7 @@ it('serves a standalone browser page with no embedded token or external script',
   const { request } = await setup()
   const r = await request('/', { auth: false })
   expect(r.status).toBe(200)
-  expect(r.body).toContain('Wao Web')
+  expect(r.body).toContain('Lumina Chat Web')
   expect(r.body).not.toContain(token)
   expect(r.body).not.toMatch(/<script[^>]+src=/)
   expect(r.headers['Content-Security-Policy']).toContain("connect-src 'self'")

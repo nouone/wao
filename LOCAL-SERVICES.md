@@ -1,6 +1,6 @@
 # Local speech and document embeddings
 
-Run these commands from your Wao checkout on **any drive**. Docker Desktop must be running with Linux containers. These are optional CPU services; no GPU is required. Wao remains a desktop client and calls their HTTP endpoints.
+Run these commands from your Lumina Chat checkout on **any drive**. Docker Desktop must be running with Linux containers. These are optional CPU services; no GPU is required. Lumina Chat remains a desktop client and calls their HTTP endpoints.
 
 ## Start
 
@@ -17,11 +17,11 @@ Already running Kokoro on port 8880? Keep that instance and start only embedding
 docker compose -f compose.local.yml up -d embeddings
 ```
 
-Already running an embedding server, such as llama.cpp/Jina on port 8085? Keep that service and its current Wao configuration. Start only Kokoro with `docker compose -f compose.local.yml up -d kokoro`, or start neither if both services already work. The Compose embeddings service is a separate TEI/BGE service on 8086; it does not manage your existing server or provide llama-ui. Use 8087 for Wao's optional chat API when 8085 is occupied.
+Already running an embedding server, such as llama.cpp/Jina on port 8085? Keep that service and its current Lumina Chat configuration. Start only Kokoro with `docker compose -f compose.local.yml up -d kokoro`, or start neither if both services already work. The Compose embeddings service is a separate TEI/BGE service on 8086; it does not manage your existing server or provide llama-ui. Use 8087 for Lumina Chat's optional chat API when 8085 is occupied.
 
-Both published ports bind to this computer only. These local endpoints have no API authentication; do not expose them publicly. Image/model downloads require internet access. These third-party services are separate from Wao's privacy audit.
+Both published ports bind to this computer only. These local endpoints have no API authentication; do not expose them publicly. Image/model downloads require internet access. These third-party services are separate from Lumina Chat's privacy audit.
 
-## Configure Wao
+## Configure Lumina Chat
 
 In **Settings → Default Models → Read aloud**, enable read aloud and use:
 
@@ -49,13 +49,13 @@ Select this model under **Default Models → Knowledge search (Embedding)** and 
 
 ## Test
 
-Wao document ingestion sends batches of at most 32 inputs, matching TEI's default maximum client batch size. This avoids the `batch size 50 > maximum allowed batch size 32` failure.
+Lumina Chat document ingestion sends batches of at most 32 inputs, matching TEI's default maximum client batch size. This avoids the `batch size 50 > maximum allowed batch size 32` failure.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Test-LocalServices.ps1
 ```
 
-This sends a short speech sample and an embedding request. It saves the MP3 to your temporary folder and prints its path and the returned vector size. Then test Wao's speaker button and upload a small document to a new knowledge base, asking a question whose answer is in that document.
+This sends a short speech sample and an embedding request. It saves the MP3 to your temporary folder and prints its path and the returned vector size. Then test Lumina Chat's speaker button and upload a small document to a new knowledge base, asking a question whose answer is in that document.
 
 If startup is still in progress, inspect logs and retry the test. To stop services while preserving the model cache:
 

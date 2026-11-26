@@ -29,14 +29,14 @@ export function RouteComponent() {
           label={
             <Flex align="center" gap="sm">
               <Image src={iconPNG} w={32} h={32} radius="md" />
-              <span>Wao{hasVersion ? ` ${version.version}` : ''}</span>
+              <span>Lumina Chat{hasVersion ? ` ${version.version}` : ''}</span>
             </Flex>
           }
-          description="Upstream update checks are removed. Update Wao from its source or a Wao installer."
+          description="Upstream update checks are removed. Update Lumina Chat from its source or a Lumina Chat installer."
         />
         <SettingRow
           id="about-chatbox"
-          label={t('About Chatbox')}
+          label={t('About Lumina Chat')}
           control={
             <Button
               // The app router, not the settings one: settings can be open as an overlay whose
