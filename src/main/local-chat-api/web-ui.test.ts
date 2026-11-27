@@ -407,6 +407,19 @@ it('tracks other conversations live: renames and generating dots arrive on chat.
   expect(rows[1].querySelector('.gen-dot')).toBeNull()
 })
 
+it('groups chats under folder headings and optgroups from the list payload', async () => {
+  const { sockets } = await setup()
+  sockets[0].onmessage!({data:JSON.stringify({type:'chat.list',chats:[{id:'loose',name:'Loose chat'},{id:'ins',name:'Filed chat',folderId:'f1'}],folders:[{id:'f1',name:'Project X'}]})})
+  expect(Array.from(document.querySelectorAll('#chats .folder-head')).map((h) => h.textContent)).toEqual(['Project X'])
+  const groups = Array.from(document.querySelectorAll('#chats .folder-group .chat'))
+  expect(groups.map((r) => r.querySelector('.nm')?.textContent)).toEqual(['Filed chat'])
+  const top = Array.from(document.querySelectorAll('#chats .chat')).filter((r) => !r.closest('.folder-group'))
+  expect(top.map((r) => r.querySelector('.nm')?.textContent)).toEqual(['Loose chat'])
+  const optgroup = document.querySelector('#mobile-chats optgroup') as HTMLOptGroupElement | null
+  expect(optgroup?.label).toBe('Project X')
+  expect(optgroup?.querySelector('option')?.textContent).toBe('Filed chat')
+})
+
 it('offers phone audio controls when Safari requires a second playback tap, and releases audio on chat changes',async()=>{
   Object.defineProperty(URL,'createObjectURL',{configurable:true,value:vi.fn(()=> 'blob:phone-speech')})
   Object.defineProperty(URL,'revokeObjectURL',{configurable:true,value:vi.fn()})

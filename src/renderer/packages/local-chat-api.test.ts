@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   list: vi.fn(),
+  folders: vi.fn(async () => [] as { id: string; name: string }[]),
   create: vi.fn(),
   header: vi.fn(),
   history: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock('@/app/renderer-application', () => ({
     sessions: {
       readSessionMessages:mocks.messages,
       listSessionsMetaPage: mocks.list,
+      listSessionFolders: mocks.folders,
       getSessionHeader: mocks.header,
       readSessionTranscriptWindow: mocks.history,
       updateSessionHeader: mocks.updateHeader,
@@ -270,23 +272,25 @@ it('marks steerable only for work-mode sessions, matching the desktop queue rule
   expect(work.body).toMatchObject({ steerable: true })
 })
 
-it('lists conversations with live generating state for the web chat list', async () => {
+it('lists conversations with live generating state and folder membership for the web chat list', async () => {
   mocks.list.mockResolvedValueOnce({
     items: [
       { id: 'busy', name: 'Busy', type: 'chat' },
-      { id: 'idle', name: 'Idle', type: 'chat' },
+      { id: 'filed', name: 'Filed', type: 'chat', folderId: 'f1' },
     ],
     nextCursor: null,
     total: 2,
   })
+  mocks.folders.mockResolvedValueOnce([{ id: 'f1', name: 'Project X' }])
   mocks.busy.mockImplementation((sessionId: string) => sessionId === 'busy')
   const result = await handleLocalChatCall({ action: 'list', limit: 50 })
   expect(result.status).toBe(200)
   expect(result.body).toMatchObject({
     items: [
       { id: 'busy', name: 'Busy', generating: true },
-      { id: 'idle', name: 'Idle', generating: false },
+      { id: 'filed', name: 'Filed', generating: false, folderId: 'f1' },
     ],
+    folders: [{ id: 'f1', name: 'Project X' }],
   })
 })
 

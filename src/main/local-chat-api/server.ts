@@ -437,7 +437,8 @@ export async function startLocalChatApi(options: {
           listTick = 0
           const page = await options.dispatch({ action: 'list', limit: 100 })
           if (page.status === 200 && page.body) {
-            const list = JSON.stringify({ type: 'chat.list', chats: (page.body as { items?: unknown[] }).items ?? [] })
+            const body = page.body as { items?: unknown[]; folders?: unknown[] }
+            const list = JSON.stringify({ type: 'chat.list', chats: body.items ?? [], folders: body.folders ?? [] })
             if (list !== previousList && ws.readyState === WebSocket.OPEN && ws.bufferedAmount < 2 * 1024 * 1024) {
               ws.send(list)
               previousList = list

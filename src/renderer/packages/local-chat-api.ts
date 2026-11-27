@@ -133,7 +133,12 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
               // Live activity for the web chat list (field: the page could not
               // see which chats were generating; Desktop's sidebar can).
               generating: pendingChats.has(s.id) || isSessionGenerating(s.id),
+              // Read-only folder grouping (field: the phone showed foldered
+              // chats loose in one stream). Membership only; creating,
+              // renaming and moving folders stays a Desktop operation.
+              ...(s.folderId ? { folderId: s.folderId } : {}),
             })),
+          folders: (await sessions.listSessionFolders()).map((folder) => ({ id: folder.id, name: folder.name })),
           nextCursor: page.nextCursor,
           total: page.total,
         },
