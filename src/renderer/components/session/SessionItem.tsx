@@ -286,10 +286,10 @@ function SessionItem(props: Props) {
       )}
       ml="xs"
       mr={isSmallScreen ? 'xs' : 0}
-      mih={isSmallScreen ? 44 : 36}
+      mih={isSmallScreen ? 44 : 32}
       pl="xs"
       pr={props.isReordering ? 44 : 'xs'}
-      py={isSmallScreen ? 10 : 6}
+      py={isSmallScreen ? 10 : 4}
       gap={10}
       onClick={onClick}
       onContextMenu={handleContextMenu}
