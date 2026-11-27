@@ -35,7 +35,7 @@ export interface DownloadLocation {
 }
 
 /**
- * Where the runs of a conversation save downloads: a folder of Chatbox's own data, named by a hash
+ * Where the runs of a conversation save downloads: a folder of Lumina Chat's own data, named by a hash
  * of the conversation id so every conversation has its own. Where the sandbox runtime confines
  * agent commands they cannot write there; elsewhere the folder is checked for links before use.
  */

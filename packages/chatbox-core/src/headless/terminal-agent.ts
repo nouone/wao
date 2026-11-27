@@ -70,7 +70,7 @@ function normalizeTimeout(timeoutMs: number | undefined, fallback: number): numb
 
 function truncateOutput(value: string, budget: number): string {
   if (value.length <= budget) return value
-  const marker = '\n... [truncated by Chatbox headless host] ...\n'
+  const marker = '\n... [truncated by Lumina Chat headless host] ...\n'
   const contentBudget = Math.max(0, budget - marker.length)
   const head = Math.ceil(contentBudget / 2)
   const tail = Math.floor(contentBudget / 2)
@@ -89,11 +89,11 @@ function compactResult(result: HeadlessCommandResult, budget: number): HeadlessC
 }
 
 function terminalSystemPrompt(workingDirectory: string | undefined): string {
-  return `You are Chatbox running as a headless terminal agent.
+  return `You are Lumina Chat running as a headless terminal agent.
 
 Complete the user's task in the provided isolated environment. Use run_command to inspect the environment, modify files, run tests, and verify the result. Continue until the task is actually complete; do not only explain what the user could do.
 
-Command execution is delegated to the host environment. It never runs on the machine hosting Chatbox. Keep command output focused and write large intermediate output to files.
+Command execution is delegated to the host environment. It never runs on the machine hosting Lumina Chat. Keep command output focused and write large intermediate output to files.
 
 ${workingDirectory ? `The default task working directory is ${workingDirectory}.` : 'Use the task working directory supplied by the host.'}`
 }

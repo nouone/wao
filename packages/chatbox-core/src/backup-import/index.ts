@@ -74,7 +74,7 @@ async function importLegacy(input: LegacyInput, options: ImportBackupOptions): P
     layout: 'rows',
     archiveId: options.archiveId,
     createdAt: new Date().toISOString(),
-    producer: `Chatbox V${input.formatVersion} import`,
+    producer: `Lumina Chat V${input.formatVersion} import`,
     selection: input.selection,
   }
   const report: BackupImportReport = {

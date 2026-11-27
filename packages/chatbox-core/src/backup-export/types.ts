@@ -27,7 +27,7 @@ export interface LegacyBackupManifest {
   format: 'chatbox-backup'
   formatVersion: 2
   exportedAt: string
-  application: { name: 'Chatbox'; version: string; platform: string }
+  application: { name: 'Chatbox' | 'Lumina Chat'; version: string; platform: string }
   exportItems: Array<'setting' | 'key' | 'conversations' | 'copilot'>
   data: { settings?: LegacyBackupEntry; copilots?: LegacyBackupEntry; sessionSettings?: LegacyBackupEntry }
   sessions: LegacyBackupSession[]

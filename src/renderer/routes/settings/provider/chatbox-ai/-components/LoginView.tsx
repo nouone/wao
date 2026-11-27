@@ -60,9 +60,9 @@ export const LoginView = forwardRef<HTMLDivElement, LoginViewProps>(
           </Flex>
           <Stack gap="0">
             <Title order={3} c="chatbox-primary">
-              {t('Welcome to Chatbox')}
+              {t('Welcome to Lumina Chat')}
             </Title>
-            <Text c="chatbox-tertiary">{t('Log in to your Chatbox account')}</Text>
+            <Text c="chatbox-tertiary">{t('Log in to your Lumina Chat account')}</Text>
           </Stack>
         </Stack>
         <Stack gap="md">

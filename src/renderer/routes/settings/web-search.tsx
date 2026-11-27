@@ -30,7 +30,7 @@ async function checkTavily(apiKey: string) {
   await ofetch('https://api.tavily.com/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: { query: 'Chatbox', search_depth: 'basic', include_domains: [], exclude_domains: [] },
+    body: { query: 'Lumina Chat', search_depth: 'basic', include_domains: [], exclude_domains: [] },
   })
 }
 
@@ -38,7 +38,7 @@ async function checkQuerit(apiKey: string) {
   await ofetch(QUERIT_SEARCH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: { query: 'Chatbox' },
+    body: { query: 'Lumina Chat' },
   })
 }
 
@@ -82,7 +82,7 @@ export function RouteComponent() {
 
   const providerNote =
     provider === 'build-in'
-      ? t('Chatbox Search is a paid feature with advanced capabilities and better performance.')
+      ? t('Lumina Chat Search is a paid feature with advanced capabilities and better performance.')
       : provider === 'bing'
         ? t('Bing Search is provided for free use, but it may have limitations and is subject to change by Microsoft.')
         : undefined
@@ -117,7 +117,7 @@ export function RouteComponent() {
             onChange={(searxngBaseUrl) => updateWebSearch({ searxngBaseUrl })}
             placeholder="https://searx.example.com"
             check={async (url) => {
-              await new SearxngSearch(url).search('Chatbox')
+              await new SearxngSearch(url).search('Lumina Chat')
             }}
             failureMessage={t('Connection failed!')}
           />
@@ -144,7 +144,7 @@ export function RouteComponent() {
             value={webSearch.bochaApiKey}
             onChange={(bochaApiKey) => updateWebSearch({ bochaApiKey })}
             check={async (apiKey) => {
-              await new BochaSearch(apiKey).search('Chatbox')
+              await new BochaSearch(apiKey).search('Lumina Chat')
             }}
             failureMessage={t('API key invalid!')}
             getKeyUrl="https://open.bochaai.com"

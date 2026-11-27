@@ -217,7 +217,7 @@ const VibedropPublish = NiceModal.create(({ html, uniqueId, sessionId }: Vibedro
         {stage === 'login_required' && (
           <>
             <Text size="sm" c="dimmed">
-              {t('Sign in to your Chatbox account to publish and manage your pages.')}
+              {t('Sign in to your Lumina Chat account to publish and manage your pages.')}
             </Text>
             <AdaptiveModal.Actions>
               <Button variant="default" onClick={onClose}>
@@ -302,7 +302,7 @@ const VibedropPublish = NiceModal.create(({ html, uniqueId, sessionId }: Vibedro
         {stage === 'email_required' && (
           <>
             <Text size="sm" c="dimmed">
-              {t('Publishing requires an email on your Chatbox account. Please add one and try again.')}
+              {t('Publishing requires an email on your Lumina Chat account. Please add one and try again.')}
             </Text>
             <AdaptiveModal.Actions>
               <Button variant="default" onClick={onClose}>

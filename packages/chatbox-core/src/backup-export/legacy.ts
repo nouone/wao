@@ -56,7 +56,7 @@ export async function* exportBackupV2Stream(
     formatVersion: 2,
     exportedAt: options.createdAt ?? new Date().toISOString(),
     application: {
-      name: 'Chatbox',
+      name: 'Lumina Chat',
       version: options.application?.version ?? options.producer,
       platform: options.application?.platform ?? 'unknown',
     },

@@ -16,8 +16,8 @@ export function mobileSkillLabels(t: (key: string) => string) {
   return [
     {
       name: 'chatbox-product-info',
-      title: t('Chatbox Product Info'),
-      description: t('Get Chatbox product help and query account quota, settings, and chat history.'),
+      title: t('Lumina Chat Product Info'),
+      description: t('Get Lumina Chat product help and query account quota, settings, and chat history.'),
     },
     {
       name: 'documents',

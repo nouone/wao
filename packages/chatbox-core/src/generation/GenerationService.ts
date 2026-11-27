@@ -103,7 +103,7 @@ function buildDeniedApprovalResult(type: ApprovalPauseReason['type'], denyReason
     case 'app_action_approval':
       return {
         success: false,
-        error: timedOut ? `Chatbox action not run. ${APPROVAL_TIMEOUT_DENIAL}` : 'Chatbox action denied by user.',
+        error: timedOut ? `Lumina Chat action not run. ${APPROVAL_TIMEOUT_DENIAL}` : 'Lumina Chat action denied by user.',
       }
   }
 }

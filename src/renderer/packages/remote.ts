@@ -567,7 +567,7 @@ export async function parseUserLinkFree(params: { url: string }) {
 }
 
 /**
- * Request seam for the Chatbox `build-in` web search provider. Mirrors
+ * Request seam for the Lumina Chat `build-in` web search provider. Mirrors
  * `getLicenseRequestOptions`: injects an afetch `fetchFn` (Chatbox error parsing + retry),
  * the API origin, and the Chatbox platform headers into the shared `searchNativeWeb` call.
  */

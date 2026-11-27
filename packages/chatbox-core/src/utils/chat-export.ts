@@ -160,7 +160,7 @@ export async function formatChatAsMarkdown(
   content += `
 <a href="https://chatboxai.app" style="display: flex; align-items: center;">
 <img src='https://chatboxai.app/icon.png' style='width: 40px; height: 40px; padding-right: 6px'>
-<b style='font-size:30px'>Chatbox AI</b>
+<b style='font-size:30px'>Lumina Chat</b>
 </a>
 `
   return content
@@ -231,6 +231,6 @@ export async function formatChatAsTxt(
     content += '\n\n\n\n'
   }
   content += `========================================================================\n\n`
-  content += `Chatbox AI (https://chatboxai.app)`
+  content += `Lumina Chat (https://github.com/nouone/wao)`
   return content
 }

@@ -18,7 +18,7 @@ const skills: readonly LocalBuiltinSkill[] = [
     metadata: {
       name: 'chatbox-product-info',
       description:
-        'Answer Chatbox product and pricing questions using official documentation; query account quota, read-only app settings and local conversation history.',
+        'Answer Lumina Chat product and pricing questions using official documentation; query account quota, read-only app settings and local conversation history.',
     },
     instructions: `# Chatbox Product Information
 

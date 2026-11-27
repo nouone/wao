@@ -47,10 +47,10 @@ function _errorI18nKeys(t: (key: string) => string) {
   )
   t('The file size exceeds the limit of 50MB. Please reduce the file size and try again.')
   t(
-    "The {{model}} API doesn't support document understanding. You can use <LinkToAdvancedFileProcessing>Chatbox AI Service</LinkToAdvancedFileProcessing> for cloud-based document analysis, or download <LinkToHomePage>Chatbox Desktop App</LinkToHomePage> for local document analysis."
+    "The {{model}} API doesn't support document understanding. You can use <LinkToAdvancedFileProcessing>Chatbox AI Service</LinkToAdvancedFileProcessing> for cloud-based document analysis, or download <LinkToHomePage>Lumina Chat Desktop App</LinkToHomePage> for local document analysis."
   )
   t(
-    "The {{model}} API doesn't support document understanding. You can download <LinkToHomePage>Chatbox Desktop App</LinkToHomePage> for local document analysis."
+    "The {{model}} API doesn't support document understanding. You can download <LinkToHomePage>Lumina Chat Desktop App</LinkToHomePage> for local document analysis."
   )
   t(
     'Sorry, the current model {{model}} API itself does not support image understanding. If you need to send images, please switch to another model or use the recommended <OpenMorePlanButton>Chatbox AI Models</OpenMorePlanButton>.'
@@ -59,10 +59,10 @@ function _errorI18nKeys(t: (key: string) => string) {
     'Vision capability is not enabled for Model {{model}}. Please enable it or set a default OCR model in <OpenSettingButton>Settings</OpenSettingButton>'
   )
   t(
-    'The {{model}} API itself does not support sending files. Due to the complexity of file parsing locally, Chatbox only processes text-based files (including code). For additional file formats and enhanced document understanding capabilities, <LinkToAdvancedFileProcessing>Chatbox AI Service</LinkToAdvancedFileProcessing> is recommended.'
+    'The {{model}} API itself does not support sending files. Due to the complexity of file parsing locally, Lumina Chat only processes text-based files (including code). For additional file formats and enhanced document understanding capabilities, <LinkToAdvancedFileProcessing>Chatbox AI Service</LinkToAdvancedFileProcessing> is recommended.'
   )
   t(
-    'The {{model}} API itself does not support sending files. Due to the complexity of file parsing locally, Chatbox only processes text-based files (including code).'
+    'The {{model}} API itself does not support sending files. Due to the complexity of file parsing locally, Lumina Chat only processes text-based files (including code).'
   )
   t(
     'An error occurred while processing your request. Please try again later. If this error continues, please send an email to hi@chatboxai.com for support.'
@@ -203,6 +203,7 @@ function _otherI18nKeys(t: (key: string) => string) {
   // src/shared/theme-colors.ts, rendered dynamically in settings/appearance.tsx
   t('Claude Classic')
   t('Mist Blue')
+  t('Lamina')
 
   // src/renderer/components/common/MessageLayoutPreview.tsx
   t('Left-aligned')

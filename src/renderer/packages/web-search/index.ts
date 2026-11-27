@@ -127,7 +127,7 @@ async function _searchRelatedResults(query: string, signal?: AbortSignal) {
 }
 
 export async function testWebSearchConnection(signal?: AbortSignal): Promise<void> {
-  await _searchRelatedResults('Chatbox', signal)
+  await _searchRelatedResults('Lumina Chat', signal)
 }
 
 const cache = new Map()

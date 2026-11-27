@@ -239,7 +239,7 @@ export default function Sidebar() {
             >
               <Image src={icon} w={20} h={20} />
               <Text span c="chatbox-primary" fz={16} lh="24px" fw={600} truncate>
-                Chatbox
+                Lumina Chat
               </Text>
               {/\d/.test(versionHook.version) && (
                 <Text span c="chatbox-tertiary" size="sm">

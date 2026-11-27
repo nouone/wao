@@ -847,8 +847,8 @@ Chatbox is an **all-in-one AI chat client** that supports 30+ mainstream models 
     fakeMessages.push({
       id: generateMessageId(),
       role: 'assistant',
-      content: t('Welcome to Chatbox!'),
-      parts: [{ type: 'text', text: t('Welcome to Chatbox!') }],
+      content: t('Welcome to Lumina Chat!'),
+      parts: [{ type: 'text', text: t('Welcome to Lumina Chat!') }],
     })
 
     // Add maxRounds - 1 user messages, so next send triggers limit message

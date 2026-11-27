@@ -192,7 +192,7 @@ class RendererBackupService {
             format,
             application,
             archiveId: options.jobId,
-            producer: 'Chatbox',
+            producer: 'Lumina Chat',
             selection: exportSelection,
             source: createBackupExportSource(sourceOptions, { includeGlobals: format !== 'v1' }),
             workspace: options.workspace,

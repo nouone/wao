@@ -226,7 +226,13 @@ html[data-theme="light"] {
 
 /* Independent sidebar typography; portals and the chat panel are outside this scope. */
 .local-sidebar-font .mantine-NavLink-label,
-.local-sidebar-font .mantine-Text-root:not(.tabular-nums),
+.local-sidebar-font .mantine-Text-root,
 .local-sidebar-font .mantine-Button-label {
   font-size: var(--sidebar-font-size) !important;
+}
+
+/* Secondary meta (timestamps, conversation-id chips) keeps its smaller tier,
+   but scales with the sidebar setting instead of freezing at 11px. */
+.local-sidebar-font .tabular-nums {
+  font-size: calc(var(--sidebar-font-size) - 3px) !important;
 }
